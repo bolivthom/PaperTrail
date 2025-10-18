@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS receipts (
     company_address TEXT,
     purchase_date DATE NOT NULL,
     sub_total NUMERIC(12, 2) DEFAULT 0.00,
-    gct NUMERIC(12, 2) DEFAULT 0.00,
+    tax_amount NUMERIC(12, 2) DEFAULT 0.00,
     total_amount NUMERIC(12, 2) NOT NULL,
     currency VARCHAR(10) DEFAULT 'JMD',
     notes TEXT,
