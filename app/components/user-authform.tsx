@@ -1,6 +1,7 @@
 import { Mail } from 'lucide-react'
 import { Input } from './ui/input';
 import { Button } from './ui/button';
+import { Label } from './ui/label';
 
 
 export default function UserAuthForm() {
@@ -11,7 +12,7 @@ export default function UserAuthForm() {
                 className="space-y-3"
             >
                 <div className="space-y-2">
-                    {/* <Label htmlFor="email">Email address</Label> */}
+                    <Label htmlFor="email">Email address</Label>
                     <Input
                         id="email"
                         name="email" 
