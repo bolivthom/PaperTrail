@@ -1,5 +1,3 @@
-CREATE EXTENSION IF NOT EXISTS "pgcrypto";
-
 -- Ensure pgcrypto is enabled inside PaperTrail too
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
