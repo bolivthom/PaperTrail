@@ -52,6 +52,7 @@ COPY --from=production-deps /remixapp/node_modules /remixapp/node_modules
 # Copy built application
 COPY --from=build /remixapp/build /remixapp/build
 COPY --from=build /remixapp/package.json /remixapp/package.json
+COPY --from=build /remixapp/public /remixapp/public
 
 # Copy prisma schema
 COPY --from=build /remixapp/prisma /remixapp/prisma
