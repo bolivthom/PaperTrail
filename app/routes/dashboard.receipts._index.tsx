@@ -12,7 +12,7 @@ import ReceiptsTable from "~/components/receiptsTable";
 // In dashboard.receipts.tsx loader
 export async function loader({ request }: LoaderFunctionArgs) {
   const { user } = await getUserFromRequest(request);
-  
+  console.log('User in receipts loader:', user);
   if (!user) return redirect('/auth/login');
 
   const url = new URL(request.url);
@@ -105,6 +105,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
   // Get total count for pagination
   const totalCount = await prisma.receipt.count({ where: whereClause });
 
+  console.log('WHERE', whereClause)
   // Fetch receipts with pagination
   const receipts = await prisma.receipt.findMany({
     where: whereClause,
@@ -123,6 +124,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
   // Fetch all categories for filter
   const categories = await prisma.category.findMany({
+    where: { user_id: user.id },
     select: {
       id: true,
       name: true,
