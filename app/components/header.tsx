@@ -86,37 +86,24 @@ import {
     NavigationMenuTrigger 
 } from "./ui/navigation-menu";
 import { Avatar, AvatarFallback } from "./ui/avatar";
-import { useLocation } from "@remix-run/react";
-
-const pageInfo = {
-    '/dashboard': {
-        title: 'Hello John!',
-        subtitle: 'Overview & Analytics'
-    },
-    '/dashboard/receipts': {
-        title: 'All Receipts',
-        subtitle: 'View and manage your receipts'
-    },
-    '/dashboard/categories': {
-        title: 'Categories',
-        subtitle: 'Organize your expenses'
-    },
-    '/dashboard/reports': {
-        title: 'Reports',
-        subtitle: 'Financial insights and analytics'
-    }
-};
+import { authClient } from "~/auth-client";
+import { useEffect, useState } from "react";
 
 export function Header() {
-    const location = useLocation();
-    const currentPage = pageInfo[location.pathname as keyof typeof pageInfo] || pageInfo['/dashboard'];
+    const [user, setUser] = useState({});
+
+    useEffect(() => {
+         authClient.getSession().then((response) => {
+            console.log('response', response)
+            setUser(response?.data?.user);
+         });
+    }, []);
 
     return (
         <header className="flex items-center justify-between mb-8">
-            {/* Hide title on mobile (< lg), show on desktop (>= lg) */}
-            <div className="hidden lg:block">
-                <h1 className="text-3xl font-medium">{currentPage.title}</h1>
-                <p className="text-muted-foreground mt-1">{currentPage.subtitle}</p>
+            <div>
+                <h1 className="text-3xl font-medium">Hello {user?.first_name} {user?.last_name}!</h1>
+                <p className=" text-muted-foreground mt-1">Overview & Analytics</p>
             </div>
 
             {/* Spacer to push avatar to the right on mobile */}
