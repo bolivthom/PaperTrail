@@ -7,6 +7,7 @@ import { Card, CardContent } from "~/components/ui/card";
 import { SidebarProvider } from "~/components/ui/sidebar";
 import { getUserFromRequest } from "~/lib/user";
 import prisma from "~/prisma.server";
+import { Header } from "~/components/header";
 
 export async function loader({ request}: any) {
   const { user } = await getUserFromRequest(request);
