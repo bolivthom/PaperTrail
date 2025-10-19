@@ -84,7 +84,7 @@ export default function ReceiptsTable({
         <EmptyState
           icon={Receipt}
           title="No receipts found"
-          description="Try adjusting your filters or upload your first receipt to get started."
+          description="Try uploading your first receipt to get started."
           actionLabel="Upload Receipt"
           actionLink="/dashboard"
           actionIcon={Receipt}
