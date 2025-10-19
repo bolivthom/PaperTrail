@@ -4,7 +4,7 @@ import SortDropdown from "~/components/SortButton";
 import { Searchbar } from "~/components/searchbar";
 import { EmptyState } from "~/components/EmptyState";
 import { FolderOpen, Plus, ChevronRight } from "lucide-react";
-import { CustomPagination } from "~/components/customPagination";
+import { CustomPagination } from "~/components/CustomPagination";
 import { useSearchParams } from "@remix-run/react";
 import { LoaderFunctionArgs } from "@remix-run/node";
 import prisma from "~/prisma.server";
