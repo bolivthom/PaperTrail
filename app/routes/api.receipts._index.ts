@@ -9,15 +9,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
   const from = url.searchParams.get("from");
   const to = url.searchParams.get("to");
   const category = url.searchParams.get("category");
-  // const { user } = await getUserFromRequest(request);
-
-    const user = {
-    id: "7b4f24d6-2e05-43fe-9531-18e051320b40", // Mock UUID
-    email: "test@example.com",
-    name: "Test User",
-    first_name: "Test",
-    last_name: "User",
-  };
+  const { user } = await getUserFromRequest(request);
 
   if (!user) {
     console.log("caller is not currently logged in.");
