@@ -74,7 +74,7 @@ export default function NotFound({
           <div className="pt-4">
             <p className="text-sm text-muted-foreground">
               Need help?{" "}
-              <Link to={supportLink} className="text-primary hover:underline font-medium">
+              <Link to={"#"} className="text-primary hover:underline font-medium">
                 Contact support
               </Link>
             </p>

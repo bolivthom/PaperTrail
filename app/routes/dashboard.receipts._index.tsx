@@ -6,7 +6,10 @@ import { getUserFromRequest } from "~/lib/user";
 import prisma from "~/prisma.server";
 import { Header } from "~/components/header";
 import ReceiptsTable from "~/components/receiptsTable";
+// import ReceiptsTable from "~/components/receiptsTable";
 
+
+// In dashboard.receipts.tsx loader
 export async function loader({ request }: LoaderFunctionArgs) {
   const { user } = await getUserFromRequest(request);
   
@@ -14,7 +17,11 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
   const url = new URL(request.url);
   const searchQuery = url.searchParams.get('q') || '';
-  const categoryFilter = url.searchParams.get('category') || 'all';
+  
+  // Handle both single category and multiple categories
+  const categoryParam = url.searchParams.get('categories') || url.searchParams.get('category') || '';
+  const categoryFilters = categoryParam ? categoryParam.split(',').filter(Boolean) : [];
+  
   const sortBy = url.searchParams.get('sort') || 'date-desc';
   const currentPage = Number(url.searchParams.get('page')) || 1;
   const ITEMS_PER_PAGE = 10;
@@ -32,10 +39,43 @@ export async function loader({ request }: LoaderFunctionArgs) {
     ];
   }
 
-  // Add category filter
-  if (categoryFilter && categoryFilter !== 'all') {
-    whereClause.category_id = categoryFilter;
+  // Add category filter (supports multiple categories)
+  if (categoryFilters.length > 0 && !categoryFilters.includes('all')) {
+    whereClause.category_id = { in: categoryFilters };
   }
+
+  // ... rest of loader code
+// }
+
+// export async function loader({ request }: LoaderFunctionArgs) {
+//   const { user } = await getUserFromRequest(request);
+  
+//   if (!user) return redirect('/auth/login');
+
+//   const url = new URL(request.url);
+//   const searchQuery = url.searchParams.get('q') || '';
+//   const categoryFilter = url.searchParams.get('category') || 'all';
+//   const sortBy = url.searchParams.get('sort') || 'date-desc';
+//   const currentPage = Number(url.searchParams.get('page')) || 1;
+//   const ITEMS_PER_PAGE = 10;
+
+//   // Build where clause
+//   const whereClause: any = {
+//     user_id: user.id,
+//   };
+
+//   // Add search filter
+//   if (searchQuery) {
+//     whereClause.OR = [
+//       { company_name: { contains: searchQuery, mode: 'insensitive' } },
+//       { notes: { contains: searchQuery, mode: 'insensitive' } },
+//     ];
+//   }
+
+//   // Add category filter
+//   if (categoryFilter && categoryFilter !== 'all') {
+//     whereClause.category_id = categoryFilter;
+//   }
 
   // Build orderBy
   let orderBy: any = {};
