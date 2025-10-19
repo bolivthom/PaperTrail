@@ -34,12 +34,12 @@ export const verifyMagicLink = async (token: string, request: Request) => {
         headers: request.headers,
     });
 
-    if(verificationResponse.user.emailVerified) {
+    if(!verificationResponse.user.emailVerified) {
         return {
             status: 'error',
             message: 'Invalid or expired magic link.',
-            headers,
-            user: verificationResponse.user,
+            // headers,
+            // user: verificationResponse.user,
         };
     } else {
         redisClient.get(`magiclink:email:${verificationResponse.user?.email}`).then(async (data) => {
@@ -56,7 +56,12 @@ export const verifyMagicLink = async (token: string, request: Request) => {
             }
         });
 
-        return { status: 'success' };
+        return { 
+            status: 'success',
+            message: 'Successfully verified with magic link.',
+            headers,
+            user: verificationResponse.user,
+        };
     }
 }
 

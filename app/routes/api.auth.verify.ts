@@ -12,7 +12,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
         const setCookie = verificationResponse.headers?.get("set-cookie");
         if (setCookie) response.headers.append("Set-Cookie", setCookie);
     } else {
-        response = redirect('/login?error=email_not_verified');
+        response = redirect('/auth/verify?error=email_not_verified');
     }
     // Forward Better Auth's set-cookie header so the session is established
     return response;
