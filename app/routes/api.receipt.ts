@@ -1,6 +1,8 @@
 import { ActionFunctionArgs } from "@remix-run/node";
 import { extractImageData, type ReceiptDataExtract } from "../openai.server";
 import { getUserFromRequest } from "~/lib/user";
+import { ReceiptExtractionError } from "~/errors";
+
 import prisma from "~/prisma.server";
 import {
   S3Client,
@@ -197,6 +199,23 @@ export async function action({ request }: ActionFunctionArgs) {
       console.log("OpenAI extraction successful");
     } catch (error) {
       console.error("OpenAI extraction failed:", error);
+
+      if (error instanceof ReceiptExtractionError) {
+        return new Response(
+          JSON.stringify({
+            state: "failure",
+            message:
+              "Missing reciept or blurry image.",
+            data: [],
+          }),
+          {
+            status: 422,
+            headers: {
+              "Content-Type": "application/json; charset=utf-8",
+            },
+          }
+        );
+      }
 
       // Create receipt with just the file info if extraction fails
       const receipt = await prisma.receipt.create({

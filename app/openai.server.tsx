@@ -1,6 +1,7 @@
 import fs from "fs";
 import OpenAI, { toFile } from "openai";
 import { Readable } from "stream";
+import { NoReceiptError, ReceiptExtractionError } from "~/errors";
 
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -8,6 +9,7 @@ const client = new OpenAI({
 });
 
 export interface ReceiptDataExtract {
+  is_receipt: boolean;
   totalAmount: string;
   merchant_name: string;
   merchant_address: string;
@@ -88,7 +90,8 @@ async function extractImageData(s3Url: string): Promise<ReceiptDataExtract> {
     }
     // Validate required fields
     if (!extracted.merchant_name && !extracted.total) {
-      throw new Error("Insufficient data extracted from receipt");
+      // throw new Error("Insufficient data extracted from receipt");
+      throw new ReceiptExtractionError("Missing or invalid is_receipt field in AI response");
     }
 
     return extracted;
@@ -98,7 +101,14 @@ async function extractImageData(s3Url: string): Promise<ReceiptDataExtract> {
   }
 }
 
-const receiptExtractionPrompt = `You are an expert at extracting structured data from receipts and categorizing expenses. Given this image of a receipt, extract the following information in JSON format:
+const receiptExtractionPrompt = `You are an expert at extracting structured data from receipts and categorizing expenses. 
+
+FIRST, determine if this image contains a readable receipt. If no receipt is visible or the receipt is too blurry/illegible to extract meaningful data, return the complete JSON structure with "is_receipt": false and all other fields as empty strings/arrays.
+
+IF a receipt is detected and readable, extract the following information in JSON format with "is_receipt": true and populate the fields with actual data.
+
+FIELDS TO EXTRACT:
+- is_receipt: boolean (true if receipt is detected and readable, false otherwise)
 - totalAmount: The total amount paid.
 - merchant_name: The name of the merchant.
 - merchant_address: The address of the merchant.
@@ -126,12 +136,15 @@ CATEGORY GUIDELINES:
 - Government: Taxes, fees, licenses, permits
 - Other: Anything that doesn't fit the above categories
 
-If any information is missing, use an empty string or an empty array as appropriate.
+RECEIPT DETECTION CRITERIA:
+- Return is_receipt: false if: no receipt visible, image is blurry, text is illegible, it's a different document type (invoice, contract, etc.)
+- Return is_receipt: true only if you can clearly see receipt information like merchant, items, prices, and totals
 
-CRITICAL: Return ONLY valid JSON without any markdown formatting, code blocks, or additional text. Do not wrap the response in \`\`\`json or any other formatting.
+CRITICAL: Return ONLY valid JSON without any markdown formatting, code blocks, or additional text.
 
-Required JSON format:
+RESPONSE FORMAT (ALWAYS RETURN THIS EXACT STRUCTURE):
 {
+  "is_receipt": true/false,
   "totalAmount": "",
   "merchant_name": "",
   "merchant_address": "",
@@ -141,16 +154,136 @@ Required JSON format:
   "total": "",
   "currency": "",
   "category": "",
-  "items": [
-    {
-      "name": "",
-      "quantity": "",
-      "price": ""
-    }
-  ]
+  "items": []
 }
 
-Be accurate and thorough in your extraction and categorization.`;
+If is_receipt is true, populate the fields with actual data.
+If is_receipt is false, keep all fields as empty strings and items as empty array.
+
+Be accurate and thorough in your analysis.`;
+
+// const receiptExtractionPrompt = `You are an expert at extracting structured data from receipts and categorizing expenses. 
+
+// FIRST, determine if this image contains a readable receipt. If no receipt is visible or the receipt is too blurry/illegible to extract meaningful data, return { "is_receipt": false }.
+
+// IF a receipt is detected and readable, extract the following information in JSON format:
+// - is_receipt: true
+// - totalAmount: The total amount paid.
+// - merchant_name: The name of the merchant.
+// - merchant_address: The address of the merchant.
+// - purchase_date: The date of purchase.
+// - sub_total: The subtotal amount before tax.
+// - tax_total: The total tax amount.
+// - total: The final total amount.
+// - currency: The currency used in the transaction.
+// - category: The expense category. Must be one of: Retail, Dining, Travel, Services, Financial, Entertainment, Utilities, Returns, Business, Government, Other
+// - items: A list of items purchased, each with:
+//   - name: The name of the item.
+//   - quantity: The quantity purchased.
+//   - price: The price of the item.
+
+// CATEGORY GUIDELINES:
+// - Retail: General merchandise stores, clothing, electronics, supermarkets, pharmacies
+// - Dining: Restaurants, cafes, fast food, bars, coffee shops
+// - Travel: Airlines, hotels, car rentals, taxis, public transportation
+// - Services: Repairs, consulting, professional services, subscriptions
+// - Financial: Bank fees, ATM withdrawals, investments, insurance
+// - Entertainment: Movies, concerts, sports events, streaming services
+// - Utilities: Electricity, water, internet, phone bills, gas
+// - Returns: Refunds, returns, credits
+// - Business: Office supplies, business expenses, work-related purchases
+// - Government: Taxes, fees, licenses, permits
+// - Other: Anything that doesn't fit the above categories
+
+// RECEIPT DETECTION CRITERIA:
+// - Return is_receipt: false if: no receipt visible, image is blurry, text is illegible, it's a different document type (invoice, contract, etc.)
+// - Return is_receipt: true only if you can clearly see receipt information like merchant, items, prices, and totals
+
+// If any information is missing from a valid receipt, use an empty string or an empty array as appropriate.
+
+// CRITICAL: Return ONLY valid JSON without any markdown formatting, code blocks, or additional text.
+
+// VALID RECEIPT RESPONSE FORMAT:
+// {
+//   "is_receipt": true,
+//   "totalAmount": "",
+//   "merchant_name": "",
+//   "merchant_address": "",
+//   "purchase_date": "",
+//   "sub_total": "",
+//   "tax_total": "",
+//   "total": "",
+//   "currency": "",
+//   "category": "",
+//   "items": [
+//     {
+//       "name": "",
+//       "quantity": "",
+//       "price": ""
+//     }
+//   ]
+// }
+
+// NO RECEIPT RESPONSE FORMAT:
+// {
+//   "is_receipt": false
+// }
+
+// Be accurate and thorough in your analysis.`;
+
+// const receiptExtractionPrompt = `You are an expert at extracting structured data from receipts and categorizing expenses. Given this image of a receipt, extract the following information in JSON format:
+// - totalAmount: The total amount paid.
+// - merchant_name: The name of the merchant.
+// - merchant_address: The address of the merchant.
+// - purchase_date: The date of purchase.
+// - sub_total: The subtotal amount before tax.
+// - tax_total: The total tax amount.
+// - total: The final total amount.
+// - currency: The currency used in the transaction.
+// - category: The expense category. Must be one of: Retail, Dining, Travel, Services, Financial, Entertainment, Utilities, Returns, Business, Government, Other
+// - items: A list of items purchased, each with:
+//   - name: The name of the item.
+//   - quantity: The quantity purchased.
+//   - price: The price of the item.
+
+// CATEGORY GUIDELINES:
+// - Retail: General merchandise stores, clothing, electronics, supermarkets, pharmacies
+// - Dining: Restaurants, cafes, fast food, bars, coffee shops
+// - Travel: Airlines, hotels, car rentals, taxis, public transportation
+// - Services: Repairs, consulting, professional services, subscriptions
+// - Financial: Bank fees, ATM withdrawals, investments, insurance
+// - Entertainment: Movies, concerts, sports events, streaming services
+// - Utilities: Electricity, water, internet, phone bills, gas
+// - Returns: Refunds, returns, credits
+// - Business: Office supplies, business expenses, work-related purchases
+// - Government: Taxes, fees, licenses, permits
+// - Other: Anything that doesn't fit the above categories
+
+// If any information is missing, use an empty string or an empty array as appropriate.
+
+// CRITICAL: Return ONLY valid JSON without any markdown formatting, code blocks, or additional text. Do not wrap the response in \`\`\`json or any other formatting.
+
+// Required JSON format:
+// {
+//   "totalAmount": "",
+//   "merchant_name": "",
+//   "merchant_address": "",
+//   "purchase_date": "",
+//   "sub_total": "",
+//   "tax_total": "",
+//   "total": "",
+//   "currency": "",
+//   "category": "",
+//   "items": [
+//     {
+//       "name": "",
+//       "quantity": "",
+//       "price": ""
+//     }
+//   ]
+// }
+
+// Be accurate and thorough in your extraction and categorization.`;
 
 // const receiptExtractionPrompt = `You are an expert at extracting structured data from receipts. Given this image of a receipt, extract the following information in JSON format:
 // - totalAmount: The total amount paid.
