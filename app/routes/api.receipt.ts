@@ -1,6 +1,8 @@
 import { ActionFunctionArgs } from "@remix-run/node";
 import { extractImageData, type ReceiptDataExtract } from "../openai.server";
 import { getUserFromRequest } from "~/lib/user";
+import { ReceiptExtractionError } from "~/errors";
+
 import prisma from "~/prisma.server";
 import {
   S3Client,
@@ -31,7 +33,7 @@ export async function action({ request }: ActionFunctionArgs) {
     return new Response(
       JSON.stringify({
         state: "failure",
-        message: "Unauthorized",
+        message: "you are not currently logged in.",
         data: [],
       }),
       {
@@ -101,7 +103,7 @@ export async function action({ request }: ActionFunctionArgs) {
           data: [],
         }),
         {
-          status: 400,
+          status: 422,
           headers: {
             "Content-Type": "application/json; charset=utf-8",
           },
@@ -119,7 +121,7 @@ export async function action({ request }: ActionFunctionArgs) {
           data: [],
         }),
         {
-          status: 400,
+          status: 422,
           headers: {
             "Content-Type": "application/json; charset=utf-8",
           },
@@ -198,6 +200,23 @@ export async function action({ request }: ActionFunctionArgs) {
     } catch (error) {
       console.error("OpenAI extraction failed:", error);
 
+      if (error instanceof ReceiptExtractionError) {
+        return new Response(
+          JSON.stringify({
+            state: "failure",
+            message:
+              "Missing reciept or blurry image.",
+            data: [],
+          }),
+          {
+            status: 422,
+            headers: {
+              "Content-Type": "application/json; charset=utf-8",
+            },
+          }
+        );
+      }
+
       // Create receipt with just the file info if extraction fails
       const receipt = await prisma.receipt.create({
         data: {
@@ -219,12 +238,8 @@ export async function action({ request }: ActionFunctionArgs) {
         JSON.stringify({
           state: "success",
           message:
-            "Receipt uploaded but extraction failed. Receipt created with minimal data.",
-          data: {
-            receipt,
-            extraction_failed: true,
-            s3_url: s3Url,
-          },
+            "Unable to parse; Receipt uploaded to S3 and was saved with minimal data",
+          data: [],
         }),
         {
           status: 200,
@@ -233,6 +248,62 @@ export async function action({ request }: ActionFunctionArgs) {
           },
         }
       );
+    }
+
+    let categoryId: string | null = null;
+
+    if (extractedData.category) {
+      // Normalize category name
+      const normalizedCategory = extractedData.category.trim();
+
+      // Check if category already exists for this user
+      const existingCategory = await prisma.category.findFirst({
+        where: {
+          user_id: user.id,
+          name: {
+            equals: normalizedCategory,
+            mode: "insensitive",
+          },
+        },
+      });
+
+      if (existingCategory) {
+        // Use existing category
+        categoryId = existingCategory.id;
+        console.log(`Using existing category: ${normalizedCategory}`);
+      } else {
+        // Create new category for this user
+        const validCategories = [
+          "Retail",
+          "Dining",
+          "Travel",
+          "Services",
+          "Financial",
+          "Entertainment",
+          "Utilities",
+          "Returns",
+          "Business",
+          "Government",
+          "Other",
+        ];
+
+        // Validate the category from OpenAI
+        const isValidCategory = validCategories.includes(normalizedCategory);
+        const finalCategoryName = isValidCategory
+          ? normalizedCategory
+          : "Other";
+
+        const newCategory = await prisma.category.create({
+          data: {
+            user_id: user.id,
+            name: finalCategoryName,
+            description: `Automatically created from receipt analysis`,
+          },
+        });
+
+        categoryId = newCategory.id;
+        console.log(`Created new category: ${finalCategoryName}`);
+      }
     }
 
     // 3. Parse and validate extracted data
@@ -262,7 +333,7 @@ export async function action({ request }: ActionFunctionArgs) {
         image_mime_type: file.type,
         image_s3_url: s3Url,
         items_json: extractedData.items || [],
-        category_id: category_id || null,
+        category_id: categoryId,
         notes: `Extracted items: ${extractedData.items?.length || 0} items`,
       },
       include: {
@@ -273,15 +344,14 @@ export async function action({ request }: ActionFunctionArgs) {
     console.log("Receipt created in database:", receipt.id);
 
     // 5. Return success response
+    console.log("Extracted Data:", extractedData);
+    console.log("S3 url", s3Url);
+
     return new Response(
       JSON.stringify({
         state: "success",
         message: "Receipt uploaded and analyzed successfully",
-        data: {
-          receipt,
-          extracted_data: extractedData,
-          s3_url: s3Url,
-        },
+        data: receipt,
       }),
       {
         status: 201,
