@@ -30,9 +30,9 @@ export default function SortDropdown({ onSortChange }: SortDropdownProps) {
         <DropdownMenuItem onClick={() => handleSortChange('desc', 'Descending')}>
           <ArrowDown className="mr-2 h-4 w-4" /> Descending
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => handleSortChange('createdAt', 'Created At')}>
+        {/* <DropdownMenuItem onClick={() => handleSortChange('createdAt', 'Created At')}>
           <Calendar className="mr-2 h-4 w-4" /> Created At
-        </DropdownMenuItem>
+        </DropdownMenuItem> */}
       </DropdownMenuContent>
     </DropdownMenu>
   );

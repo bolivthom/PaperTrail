@@ -1,4 +1,4 @@
-import { redirect } from "@remix-run/node";
+import { redirect, json } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
 import { Receipt, Folder, DollarSign, BookmarkCheck } from "lucide-react";
 import { AppSidebar } from "~/components/app-sidebar";
@@ -10,26 +10,31 @@ import prisma from "~/prisma.server";
 
 export async function loader({ request}: any) {
   const { user } = await getUserFromRequest(request);
+  
+  if(!user) return redirect('/');
+  
   const receiptCount = await prisma.receipt.count({
     where: { user_id: user?.id },
   });
+  
   const totalSpent = await prisma.receipt.aggregate({
     where: { user_id: user?.id },
     _sum: { total_amount: true },
   });
+  
   const categoryCount = await prisma.category.count({
-    // where: { user_id: user?.id },
+    where: { user_id: user?.id },
   });
 
-  if(!user) return redirect('/');
-  return { user, receiptCount, totalSpent, categoryCount };
+  // Format the total spent on the server side
+  const formattedTotalSpent = `$${(Number(totalSpent._sum.total_amount ?? 0)).toFixed(2)}`;
+
+  return json({ user, receiptCount, formattedTotalSpent, categoryCount });
 }
 
 export default function Dashboard() {
-  const { receiptCount, totalSpent, categoryCount } = useLoaderData<typeof loader>();
+  const { receiptCount, formattedTotalSpent, categoryCount } = useLoaderData<typeof loader>();
 
-  const formattedTotalSpent = totalSpent._sum.total_amount ? `$${totalSpent._sum.total_amount.toFixed(2)}` : '$0.00';
-        // value: '$12,000 JMD',
   const statsItems = [
     {
       title: 'Total Receipts',
@@ -76,24 +81,6 @@ export default function Dashboard() {
           </div>
 
           {/* Upload Section */}
-          {/* <FileUploader/> */}
-          {/* <Card>
-            <CardHeader>
-              <CardTitle>Upload Receipt</CardTitle>
-              <CardDescription>AI powered receipt processing</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="border-2 border-dashed border-muted-foreground/25 rounded-xl p-12 text-center hover:border-primary/50 transition-colors cursor-pointer">
-                <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Upload className="w-8 h-8 text-primary-foreground" />
-                </div>
-                <p className="text-foreground mb-2">Drag & drop or click to upload receipts</p>
-                <p className="text-sm text-muted-foreground">Support JPEG, PNG, PDF Max 10MB</p>
-              </div>
-            </CardContent>
-          </Card> */}
-
-
           <FileUploader />
         </main>
       </div>
