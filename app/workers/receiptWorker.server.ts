@@ -77,9 +77,7 @@ const processReceiptJob = async (job: Job) => {
       where: { id: receiptId },
       data: { status: 'processing' }
     });
-    console.log("HERE WE ARE LOOK AT ME")
     await job.updateProgress(10);
-    console.log("TAKE A LOOK AT ME AFTER THE UPDATE PROGRESS")
     console.log(`🔄 Updated receipt ${receiptId} status to processing`);
 
     // Extract receipt data using OpenAI - THIS IS THE KEY PART!
