@@ -63,6 +63,7 @@ model Receipt {
   image_s3_url    String?  @db.VarChar(500)
   items_json      Json?
   category_id     String?  @db.Uuid
+  status          String   @default("completed")
   created_at      DateTime @default(now()) @db.Timestamptz(6)
   updated_at      DateTime @default(now()) @updatedAt @db.Timestamptz(6)
 

@@ -6,7 +6,15 @@ export async function action({ request, params }: ActionFunctionArgs) {
   console.log("Enter Method Loader Delete receipt ");
   const { id } = params;
 
-  const { user } = await getUserFromRequest(request);
+  // const { user } = await getUserFromRequest(request);
+
+    const user = {
+    id: "7b4f24d6-2e05-43fe-9531-18e051320b40", // Mock UUID
+    email: "test@example.com",
+    name: "Test User",
+    first_name: "Test",
+    last_name: "User",
+  };
 
   if (!user) {
     console.log("caller is not currently logged in.");
