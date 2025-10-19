@@ -11,8 +11,14 @@
     "typecheck": "tsc"
   },
   "dependencies": {
+    "@radix-ui/react-avatar": "^1.1.10",
+    "@radix-ui/react-dialog": "^1.1.15",
+    "@prisma/client": "^6.17.1",
     "@radix-ui/react-label": "^2.1.7",
+    "@radix-ui/react-navigation-menu": "^1.2.14",
+    "@radix-ui/react-separator": "^1.1.7",
     "@radix-ui/react-slot": "^1.2.3",
+    "@radix-ui/react-tooltip": "^1.2.8",
     "@remix-run/node": "^2.16.8",
     "@remix-run/react": "^2.16.8",
     "@remix-run/serve": "^2.16.8",
@@ -22,6 +28,8 @@
     "isbot": "^4.1.0",
     "lucide-react": "^0.546.0",
     "openai": "^6.5.0",
+    "radix-ui": "^1.4.3",
+    "prisma-import": "^1.0.5",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "tailwind-merge": "^3.3.1",
