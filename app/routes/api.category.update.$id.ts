@@ -1,0 +1,202 @@
+import type { ActionFunctionArgs } from "@remix-run/node";
+import prisma from "~/prisma.server";
+import { getUserFromRequest } from "~/lib/user";
+
+export async function action({ request, params }: ActionFunctionArgs) {
+  const { id } = params;
+
+  if (!id) {
+    return new Response(
+      JSON.stringify({
+        state: "failure",
+        message: "category id is needed.",
+        data: [],
+      }),
+      {
+        status: 400,
+        headers: {
+          "Content-Type": "application/json; charset=utf-8",
+        },
+      }
+    );
+  }
+
+  if (request.method !== "PUT") {
+    return new Response(
+      JSON.stringify({
+        state: "failure",
+        message: "method not allowed.",
+        data: [],
+      }),
+      {
+        status: 405,
+        headers: {
+          "Content-Type": "application/json; charset=utf-8",
+        },
+      }
+    );
+  }
+
+  const { user } = await getUserFromRequest(request);
+
+  if (!user) {
+    return new Response(
+      JSON.stringify({
+        state: "failure",
+        message: "you are not currently logged in.",
+        data: [],
+      }),
+      {
+        status: 401,
+        headers: {
+          "Content-Type": "application/json; charset=utf-8",
+        },
+      }
+    );
+  }
+
+  try {
+    // Parse request body
+    const body = await request.json();
+
+    // Check if category exists and belongs to user
+    const existingCategory = await prisma.category.findFirst({
+      where: {
+        id: id,
+        user_id: user.id,
+      },
+    });
+
+    if (!existingCategory) {
+      return new Response(
+        JSON.stringify({
+          state: "failure",
+          message: "Category not found.",
+          data: [],
+        }),
+        {
+          status: 404, // Changed from 400 to 404
+          headers: {
+            "Content-Type": "application/json; charset=utf-8",
+          },
+        }
+      );
+    }
+
+    const updateData: any = {};
+    if (body.name !== undefined) {
+      if (typeof body.name !== "string" || body.name.trim().length === 0) {
+        return new Response(
+          JSON.stringify({
+            state: "failure",
+            message: "Name is required.",
+            data: [],
+          }),
+          {
+            status: 400,
+            headers: {
+              "Content-Type": "application/json; charset=utf-8",
+            },
+          }
+        );
+      }
+      updateData.name = body.name.trim();
+    }
+
+    // Fix: Description should be allowed to be empty
+    if (body.description !== undefined) {
+      // Allow empty string for description, just trim it
+      updateData.description = body.description.trim();
+    }
+
+    // Check if no valid fields were provided
+    if (Object.keys(updateData).length === 0) {
+      return new Response(
+        JSON.stringify({
+          state: "failure",
+          message: "No valid fields to update.",
+          data: [],
+        }),
+        {
+          status: 400,
+          headers: {
+            "Content-Type": "application/json; charset=utf-8",
+          },
+        }
+      );
+    }
+
+    // Check for duplicate name if name is being updated
+    if (updateData.name && updateData.name !== existingCategory.name) {
+      const duplicateCategory = await prisma.category.findFirst({
+        where: {
+          name: updateData.name,
+          user_id: user.id,
+          NOT: {
+            id: id, // Exclude current category
+          },
+        },
+      });
+
+      if (duplicateCategory) {
+        return new Response(
+          JSON.stringify({
+            state: "failure",
+            message: "a category with this name already exists.",
+            data: [],
+          }),
+          {
+            status: 409,
+            headers: {
+              "Content-Type": "application/json; charset=utf-8",
+            },
+          }
+        );
+      }
+    }
+
+    // Update the category
+    const updatedCategory = await prisma.category.update({
+      where: {
+        id: id,
+      },
+      data: updateData,
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        created_at: true,
+        updated_at: true,
+      },
+    });
+
+    return new Response(
+      JSON.stringify({
+        state: "success",
+        message: "category updated.",
+        data: updatedCategory,
+      }),
+      {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json; charset=utf-8",
+        },
+      }
+    );
+  } catch (error) {
+    console.log(error);
+    return new Response(
+      JSON.stringify({
+        state: "failure",
+        message: error,
+        data: [],
+      }),
+      {
+        status: 500,
+        headers: {
+          "Content-Type": "application/json; charset=utf-8",
+        },
+      }
+    );
+  }
+}
