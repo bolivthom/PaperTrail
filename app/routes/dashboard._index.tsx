@@ -1,25 +1,49 @@
+import { redirect } from "@remix-run/node";
+import { useLoaderData } from "@remix-run/react";
 import { Receipt, Folder, DollarSign, BookmarkCheck } from "lucide-react";
 import { AppSidebar } from "~/components/app-sidebar";
 import FileUploader from "~/components/fileUploader";
 import { Card, CardContent } from "~/components/ui/card";
 import { SidebarProvider } from "~/components/ui/sidebar";
+import { getUserFromRequest } from "~/lib/user";
+import prisma from "~/prisma.server";
+
+export async function loader({ request}: any) {
+  const { user } = await getUserFromRequest(request);
+  const receiptCount = await prisma.receipt.count({
+    where: { user_id: user?.id },
+  });
+  const totalSpent = await prisma.receipt.aggregate({
+    where: { user_id: user?.id },
+    _sum: { total_amount: true },
+  });
+  const categoryCount = await prisma.category.count({
+    // where: { user_id: user?.id },
+  });
+
+  if(!user) return redirect('/');
+  return { user, receiptCount, totalSpent, categoryCount };
+}
 
 export default function Dashboard() {
+  const { receiptCount, totalSpent, categoryCount } = useLoaderData<typeof loader>();
 
+  const formattedTotalSpent = totalSpent._sum.total_amount ? `$${totalSpent._sum.total_amount.toFixed(2)}` : '$0.00';
+        // value: '$12,000 JMD',
   const statsItems = [
     {
       title: 'Total Receipts',
-      value: '3',
+      value: receiptCount,
       icon: Receipt,
     },
     {
       title: 'Total Spent',
-      value: '$12,000 JMD',
+      value: formattedTotalSpent,
       icon: DollarSign,
     },
     {
       title: 'Categories',
-      value: '1',
+      value: categoryCount,
       icon: Folder,
     },
   ];
