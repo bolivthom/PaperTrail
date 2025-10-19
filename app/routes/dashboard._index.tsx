@@ -24,7 +24,7 @@ export async function loader({ request}: any) {
   });
   
   const categoryCount = await prisma.category.count({
-    // where: { user_id: user?.id },
+    where: { user_id: user?.id },
   });
 
   // Convert Decimal to number, handle null case
