@@ -5,18 +5,16 @@ import { uploadToS3, generatePresignedUrl } from "~/s3.server";
 import { v4 as uuidv4 } from "uuid";
 
 interface ProcessReceiptResult {
-    state: "success" | "failure";
-    status: number;
-    extractedData?: ReceiptDataExtract;
-    message?: string;
+  state: "success" | "failure";
+  status: number;
+  extractedData?: ReceiptDataExtract;
+  message?: string;
 }
 
 export class ReceiptProcessor {
-  static async processReceiptUpload(
-    file: File,
-    user: { id: string },
-    manualCategoryId: string | null = null
-  ): Promise<ProcessReceiptResult> {
+
+
+  static async processReceiptUpload(file: File,user: { id: string },manualCategoryId: string | null = null): Promise<ProcessReceiptResult> {
     try {
       // Validate file
       const validationResult = this.validateFile(file);
@@ -41,7 +39,10 @@ export class ReceiptProcessor {
       const extractedData = extractionResult.extractedData!;
 
       // Handle category
-      const categoryId = await this.handleCategory(extractedData.category, user.id);
+      const categoryId = await this.handleCategory(
+        extractedData.category,
+        user.id
+      );
 
       // Create receipt in database
       const receipt = await this.createReceiptRecord({
@@ -59,22 +60,25 @@ export class ReceiptProcessor {
         data: receipt,
         status: 201,
       };
-
     } catch (error) {
       console.error("Error processing receipt upload:", error);
-      
+
       // If we have the file and user, try to create a minimal receipt
       if (file && user) {
         try {
           const uploadResult = await this.uploadFileToS3(file, user.id);
           if (uploadResult) {
-            return await this.handleExtractionFailure(file, user, uploadResult.s3Url, manualCategoryId);
+            return await this.handleExtractionFailure(
+              file,
+              user,
+              uploadResult.s3Url,
+              manualCategoryId
+            );
           }
         } catch (fallbackError) {
           console.error("Fallback also failed:", fallbackError);
         }
       }
-      
       return {
         state: "failure",
         message: "Internal server error",
@@ -95,7 +99,8 @@ export class ReceiptProcessor {
     if (!allowedTypes.includes(file.type)) {
       return {
         state: "failure",
-        message: "Invalid file type. Only images (JPEG, PNG, WebP) and PDFs are allowed.",
+        message:
+          "Invalid file type. Only images (JPEG, PNG, WebP) and PDFs are allowed.",
         status: 422,
       };
     }
@@ -112,10 +117,13 @@ export class ReceiptProcessor {
     return null;
   }
 
-  private static async uploadFileToS3(file: File, userId: string): Promise<{ s3Url: string; presignedUrl: string } | null> {
+  private static async uploadFileToS3(
+    file: File,
+    userId: string
+  ): Promise<{ s3Url: string; presignedUrl: string } | null> {
     try {
       const fileKey = `receipts/${userId}/${uuidv4()}-${file.name}`;
-      
+
       await uploadToS3({
         key: fileKey,
         body: Buffer.from(await file.arrayBuffer()),
@@ -126,11 +134,12 @@ export class ReceiptProcessor {
       const presignedUrl = await generatePresignedUrl(fileKey);
       const s3Url = process.env.S3_PUBLIC_BASE
         ? `${process.env.S3_PUBLIC_BASE}/${fileKey}`
-        : `https://${process.env.S3_BUCKET}.s3.${process.env.AWS_REGION || "us-east-1"}.amazonaws.com/${fileKey}`;
+        : `https://${process.env.S3_BUCKET}.s3.${
+            process.env.AWS_REGION || "us-east-1"
+          }.amazonaws.com/${fileKey}`;
 
       console.log("File uploaded to S3:", s3Url);
       return { s3Url, presignedUrl };
-
     } catch (error) {
       console.error("Failed to upload to S3:", error);
       return null;
@@ -146,7 +155,6 @@ export class ReceiptProcessor {
       const extractedData = await extractImageData(presignedUrl);
       console.log("OpenAI extraction successful");
       return { state: "success", extractedData };
-
     } catch (error) {
       console.error("OpenAI extraction failed:", error);
 
@@ -162,14 +170,25 @@ export class ReceiptProcessor {
     }
   }
 
-  private static async handleCategory(category: string | undefined, userId: string): Promise<string | null> {
+  private static async handleCategory(
+    category: string | undefined,
+    userId: string
+  ): Promise<string | null> {
     if (!category) return null;
 
     const normalizedCategory = category.trim();
     const validCategories = [
-      "Retail", "Dining", "Travel", "Services", "Financial",
-      "Entertainment", "Utilities", "Returns", "Business",
-      "Government", "Other",
+      "Retail",
+      "Dining",
+      "Travel",
+      "Services",
+      "Financial",
+      "Entertainment",
+      "Utilities",
+      "Returns",
+      "Business",
+      "Government",
+      "Other",
     ];
 
     // Check if category exists
@@ -209,7 +228,8 @@ export class ReceiptProcessor {
     categoryId: string | null;
     manualCategoryId: string | null;
   }) {
-    const { user, file, extractedData, s3Url, categoryId, manualCategoryId } = params;
+    const { user, file, extractedData, s3Url, categoryId, manualCategoryId } =
+      params;
 
     const purchaseDate = extractedData.purchase_date
       ? new Date(extractedData.purchase_date)
@@ -217,7 +237,10 @@ export class ReceiptProcessor {
 
     const subTotal = parseFloat(extractedData.sub_total) || 0;
     const taxAmount = parseFloat(extractedData.tax_total) || 0;
-    const totalAmount = parseFloat(extractedData.total) || parseFloat(extractedData.totalAmount) || 0;
+    const totalAmount =
+      parseFloat(extractedData.total) ||
+      parseFloat(extractedData.totalAmount) ||
+      0;
 
     return await prisma.receipt.create({
       data: {
@@ -242,7 +265,12 @@ export class ReceiptProcessor {
     });
   }
 
-  static async handleExtractionFailure(file: File, user: { id: string }, s3Url: string, manualCategoryId: string | null): Promise<ProcessReceiptResult> {
+  static async handleExtractionFailure(
+    file: File,
+    user: { id: string },
+    s3Url: string,
+    manualCategoryId: string | null
+  ): Promise<ProcessReceiptResult> {
     const receipt = await prisma.receipt.create({
       data: {
         user_id: user.id,
@@ -261,7 +289,8 @@ export class ReceiptProcessor {
 
     return {
       state: "success",
-      message: "Unable to parse; Receipt uploaded to S3 and was saved with minimal data",
+      message:
+        "Unable to parse; Receipt uploaded to S3 and was saved with minimal data",
       data: receipt,
       status: 200,
     };
