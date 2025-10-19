@@ -40,7 +40,7 @@ export async function loader({ request}: any) {
 }
 
 export default function Dashboard() {
-  const { receiptCount, formattedTotalSpent, categoryCount } = useLoaderData<typeof loader>();
+  const { receiptCount, totalSpent, categoryCount } = useLoaderData<typeof loader>();
 
   const statsItems = [
     {
