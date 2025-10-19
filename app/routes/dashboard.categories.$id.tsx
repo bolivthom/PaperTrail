@@ -16,7 +16,7 @@
 // }
 
 
-import { Link, Form, useNavigate } from "@remix-run/react";
+import { Link, Form, useNavigate, useLoaderData } from "@remix-run/react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
@@ -25,6 +25,8 @@ import { FolderX } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "~/components/ui/alert-dialog";
 import NotFound from "~/components/notFound";
+import { getUserFromRequest } from "~/lib/user";
+import prisma from "~/prisma.server";
 
 // Types
 export interface CategoryDetails {
@@ -41,11 +43,63 @@ interface CategoryEditProps {
   backUrl?: string;
 }
 
-export default function EditCategory({ 
-  category, 
-  backUrl = "/dashboard/categories" 
-}: CategoryEditProps) {
-  const navigate = useNavigate();
+export async function loader({ request,params }: LoaderFunctionArgs) {
+  const { id } = params;
+
+  if (!id) {
+    throw new Error("Missing receipt ID");
+  }
+
+  const { user } = await getUserFromRequest(request);
+  
+  if (!user) {
+    throw new Error("User not authenticated");
+  }
+
+  const category = await prisma.category.findFirst({ 
+    where: { id, user_id: user.id },
+    select: {
+        id: true,
+        name: true,
+          _count: {
+              select: { 
+                  receipts: true 
+              }
+          }
+    }
+  });
+
+  if (!category) {
+    throw new Error("Category not found");
+  }
+
+    const categoryTotals = await prisma.receipt.groupBy({
+        by: ['category_id'],
+        _sum: {
+            total_amount: true
+        },
+        where: {
+            user_id: user.id,
+            category_id: category.id
+        }
+    });
+
+    const totalsMap = new Map(
+        categoryTotals.map(item => [
+            item.category_id, 
+            Number(item._sum.total_amount || 0)
+        ])
+    );
+
+    category.receiptsCount = category._count.receipts;
+    category.totalAmount = (totalsMap.get(category.id) || 0).toFixed(2);
+  
+  return { category };
+}
+
+
+export default function EditCategory(props: CategoryEditProps) {
+  const { category } = useLoaderData<typeof loader>();
 
   if (!category) {
     return (
@@ -54,7 +108,7 @@ export default function EditCategory({
         title="Category not found"
         description="This category doesn't exist or has been removed."
         actions={[
-          { label: "Back to categories", link: backUrl, icon: ArrowLeft },
+          { label: "Back to categories", link: "/dashboard/categories", icon: ArrowLeft },
           { label: "Go to dashboard", link: "/dashboard", icon: Home }
         ]}
       />
@@ -67,11 +121,13 @@ export default function EditCategory({
     // navigate(backUrl);
   };
 
+  const backUrl = "/dashboard/categories";
+
   return (
     <div className="space-y-6 max-w-2xl">
       {/* Header with Back Button */}
       <div className="flex items-center justify-between">
-        <Link to={backUrl}>
+        <Link to={"/dashboard/categories" }>
           <Button variant="outline" className="gap-2">
             <ArrowLeft className="w-4 h-4" />
             Back to categories
@@ -115,7 +171,7 @@ export default function EditCategory({
       </Card>
 
       {/* Edit Form */}
-      <Card className="border border-border shadow-sm rounded-2xl bg-card">
+      {/* <Card className="border border-border shadow-sm rounded-2xl bg-card">
         <CardHeader>
           <CardTitle>Edit Category</CardTitle>
         </CardHeader>
@@ -151,10 +207,10 @@ export default function EditCategory({
             </div>
           </Form>
         </CardContent>
-      </Card>
+      </Card> */}
 
       {/* Danger Zone */}
-      <Card className="border-destructive/50 border border-border shadow-sm rounded-2xl bg-card">
+      {/* <Card className="border-destructive/50 border border-border shadow-sm rounded-2xl bg-card">
         <CardHeader>
           <CardTitle className="text-destructive">Danger Zone</CardTitle>
         </CardHeader>
@@ -194,7 +250,7 @@ export default function EditCategory({
             </AlertDialog>
           </div>
         </CardContent>
-      </Card>
+      </Card> */}
     </div>
   );
 }
