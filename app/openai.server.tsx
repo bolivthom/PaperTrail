@@ -23,105 +23,59 @@ export interface ReceiptDataExtract {
   }>;
 }
 
-async function extractImageData(file: File) {
-  console.log("entered extractImageData");
+async function extractImageData(s3Url: string): Promise<ReceiptDataExtract> {
+  console.log("Starting receipt extraction from S3 URL:", s3Url);
+
   try {
-    // Convert File to Blob and create File object for OpenAI
-    const blob = new Blob([file], { type: file.type });
-
-    // 1️⃣ Upload the file to OpenAI using the File object directly
-    const uploadResponse = await client.files.create({
-      file: file, // Use the File object directly
-      purpose: "vision",
-    });
-    const fileId = uploadResponse.id;
-    console.log("Uploaded file ID:", fileId);
-
-    // 2️⃣ Use Chat Completions with Vision and the uploaded file
-    const completionResponse = await client.chat.completions.create({
-      model: "gpt-4o",
+    const completion = await client.chat.completions.create({
+      model: "gpt-4o", // Using GPT-4 Vision model
       messages: [
         {
           role: "system",
-          content: receiptExtractionPrompt
+          content: receiptExtractionPrompt,
         },
         {
           role: "user",
           content: [
             {
               type: "text",
-              text: "Extract receipt information as JSON using the specified fields."
+              text: "Extract structured receipt data from this image:",
             },
             {
-              type: "file", // Correct type for uploaded files
-              file: {
-                file_id: fileId // Use the uploaded file ID
-              }
-            }
-          ]
-        }
+              type: "image_url",
+              image_url: {
+                url: s3Url, // Direct S3 URL
+              },
+            },
+          ],
+        },
       ],
-      max_tokens: 1000,
+      max_tokens: 2000,
     });
 
-    // 3️⃣ Get the response text
-    const rawContent = completionResponse.choices[0]?.message?.content || "";
+    const rawContent = completion.choices[0]?.message?.content?.trim() || "";
     console.log("Raw extracted content:", rawContent);
+
+    // Parse JSON response
+    let extracted: ReceiptDataExtract;
+    try {
+      extracted = JSON.parse(rawContent);
+    } catch (parseError) {
+      console.error("Failed to parse OpenAI response:", parseError);
+      throw new Error("Failed to parse receipt data from AI response");
+    }
+
+    // Validate required fields
+    if (!extracted.merchant_name && !extracted.total) {
+      throw new Error("Insufficient data extracted from receipt");
+    }
+
+    return extracted;
   } catch (error) {
-    console.error("Error extracting image data:", error);
+    console.error("Error in extractImageData:", error);
     throw error;
   }
 }
-
-// async function extractImageData(file: File) {
-//   console.log("entered extract image data");
-//   try {
-//     const arrayBuffer = await file.arrayBuffer();
-//     const base64Image = Buffer.from(arrayBuffer).toString("base64");
-//     const mimeType = file.type || "image/jpeg";
-
-//     const completion = await client.chat.completions.create({
-//       model: "gpt-4o",
-//       messages: [
-//         {
-//           role: "system",
-//           content: receiptExtractionPrompt,
-//         },
-//         {
-//           role: "user",
-//           content: [
-//             {
-//               type: "text",
-//               text: "Extract structured receipt data from this image:",
-//             },
-//             {
-//               type: "image_url",
-//               image_url: `data:${mimeType};base64,${base64Image}`,
-//             },
-//           ],
-//         },
-//       ],
-//     });
-
-//     // Get the JSON text from the model
-//     const rawContent = completion.choices[0].message?.content?.trim() || "";
-//     console.log("Raw extracted content:", rawContent);
-
-//     // Try parsing JSON safely
-//     let extracted;
-//     try {
-//       extracted = JSON.parse(rawContent);
-//     } catch {
-//       console.warn("Response was not valid JSON. Returning raw text.");
-//       extracted = { raw_text: rawContent };
-//     }
-
-//     return extracted;
-//   } catch (error) {
-//     console.error("Error getting chat completion:", error);
-//     throw error;
-//   }
-// }
 
 const receiptExtractionPrompt = `You are an expert at extracting structured data from receipts. Given this image of a receipt, extract the following information in JSON format:
 - totalAmount: The total amount paid.
