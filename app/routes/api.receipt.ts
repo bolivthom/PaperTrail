@@ -6,13 +6,15 @@ import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { v4 as uuidv4 } from "uuid";
 
 // S3 client configuration
-const s3 = new S3Client({
-  region: process.env.AWS_REGION,
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-  },
-});
+const s3Config = {
+  region: process.env.AWS_REGION || 'us-east-1',
+  credentials: process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY ? {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  } : undefined,
+};
+
+const s3 = new S3Client(s3Config);
 
 export async function action({ request }: ActionFunctionArgs) {
   const { user } = await getUserFromRequest(request);
@@ -53,7 +55,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
   try {
     const formData = await request.formData();
-    const file = formData.get("image") as File; // Changed from "file" to "image" to match Postman
+    const file = formData.get("image") as File;
 
     if (!file || file.size === 0) {
       return new Response(
@@ -116,9 +118,33 @@ export async function action({ request }: ActionFunctionArgs) {
       );
     }
 
+    // Check if S3 is properly configured
+    if (!process.env.S3_BUCKET) {
+      console.error("S3_BUCKET environment variable is missing");
+      return new Response(
+        JSON.stringify({
+          state: "failure",
+          message: "S3 storage is not configured",
+          data: [],
+        }),
+        {
+          status: 500,
+          headers: {
+            "Content-Type": "application/json; charset=utf-8",
+          },
+        }
+      );
+    }
+
     // 1. Upload file to S3
     const fileKey = `receipts/${user.id}/${uuidv4()}-${file.name}`;
     const fileBuffer = await file.arrayBuffer();
+    
+    console.log("Uploading file to S3:", {
+      bucket: process.env.S3_BUCKET,
+      key: fileKey,
+      size: file.size
+    });
     
     await s3.send(
       new PutObjectCommand({
@@ -133,13 +159,18 @@ export async function action({ request }: ActionFunctionArgs) {
       })
     );
 
-    // Generate S3 URL
-    const s3Url = `https://${process.env.S3_BUCKET}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileKey}`;
+    // Generate S3 URL using S3_PUBLIC_BASE
+    const s3Url = process.env.S3_PUBLIC_BASE 
+      ? `${process.env.S3_PUBLIC_BASE}/${fileKey}`
+      : `https://${process.env.S3_BUCKET}.s3.${process.env.AWS_REGION || 'us-east-1'}.amazonaws.com/${fileKey}`;
+    
+    console.log("File uploaded to S3:", s3Url);
 
     // 2. Extract receipt data using OpenAI
     let extractedData: ReceiptDataExtract;
     try {
       extractedData = await extractImageData(s3Url);
+      console.log("OpenAI extraction successful");
     } catch (error) {
       console.error("OpenAI extraction failed:", error);
       
@@ -209,6 +240,8 @@ export async function action({ request }: ActionFunctionArgs) {
         category: true,
       },
     });
+
+    console.log("Receipt created in database:", receipt.id);
 
     // 5. Return success response
     return new Response(
