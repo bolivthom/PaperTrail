@@ -25,7 +25,15 @@ const s3Config = {
 const s3 = new S3Client(s3Config);
 
 export async function action({ request }: ActionFunctionArgs) {
-  const { user } = await getUserFromRequest(request);
+  // const { user } = await getUserFromRequest(request);
+
+  const user = {
+    id: "7b4f24d6-2e05-43fe-9531-18e051320b40", // Mock UUID
+    email: "test@example.com",
+    name: "Test User",
+    first_name: "Test",
+    last_name: "User",
+  };
 
   if (!user) {
     return new Response(
@@ -235,6 +243,62 @@ export async function action({ request }: ActionFunctionArgs) {
       );
     }
 
+    let categoryId: string | null = null;
+
+    if (extractedData.category) {
+      // Normalize category name
+      const normalizedCategory = extractedData.category.trim();
+
+      // Check if category already exists for this user
+      const existingCategory = await prisma.category.findFirst({
+        where: {
+          user_id: user.id,
+          name: {
+            equals: normalizedCategory,
+            mode: "insensitive",
+          },
+        },
+      });
+
+      if (existingCategory) {
+        // Use existing category
+        categoryId = existingCategory.id;
+        console.log(`Using existing category: ${normalizedCategory}`);
+      } else {
+        // Create new category for this user
+        const validCategories = [
+          "Retail",
+          "Dining",
+          "Travel",
+          "Services",
+          "Financial",
+          "Entertainment",
+          "Utilities",
+          "Returns",
+          "Business",
+          "Government",
+          "Other",
+        ];
+
+        // Validate the category from OpenAI
+        const isValidCategory = validCategories.includes(normalizedCategory);
+        const finalCategoryName = isValidCategory
+          ? normalizedCategory
+          : "Other";
+
+        const newCategory = await prisma.category.create({
+          data: {
+            user_id: user.id,
+            name: finalCategoryName,
+            description: `Automatically created from receipt analysis`,
+          },
+        });
+
+        categoryId = newCategory.id;
+        console.log(`Created new category: ${finalCategoryName}`);
+      }
+    }
+
     // 3. Parse and validate extracted data
     const purchaseDate = extractedData.purchase_date
       ? new Date(extractedData.purchase_date)
@@ -262,7 +326,7 @@ export async function action({ request }: ActionFunctionArgs) {
         image_mime_type: file.type,
         image_s3_url: s3Url,
         items_json: extractedData.items || [],
-        category_id: category_id || null,
+        category_id: categoryId,
         notes: `Extracted items: ${extractedData.items?.length || 0} items`,
       },
       include: {

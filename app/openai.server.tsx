@@ -16,6 +16,7 @@ export interface ReceiptDataExtract {
   tax_total: string;
   total: string;
   currency: string;
+  category: string; // New field
   items: Array<{
     name: string;
     quantity: string;
@@ -97,7 +98,7 @@ async function extractImageData(s3Url: string): Promise<ReceiptDataExtract> {
   }
 }
 
-const receiptExtractionPrompt = `You are an expert at extracting structured data from receipts. Given this image of a receipt, extract the following information in JSON format:
+const receiptExtractionPrompt = `You are an expert at extracting structured data from receipts and categorizing expenses. Given this image of a receipt, extract the following information in JSON format:
 - totalAmount: The total amount paid.
 - merchant_name: The name of the merchant.
 - merchant_address: The address of the merchant.
@@ -106,10 +107,24 @@ const receiptExtractionPrompt = `You are an expert at extracting structured data
 - tax_total: The total tax amount.
 - total: The final total amount.
 - currency: The currency used in the transaction.
+- category: The expense category. Must be one of: Retail, Dining, Travel, Services, Financial, Entertainment, Utilities, Returns, Business, Government, Other
 - items: A list of items purchased, each with:
   - name: The name of the item.
   - quantity: The quantity purchased.
   - price: The price of the item.
+
+CATEGORY GUIDELINES:
+- Retail: General merchandise stores, clothing, electronics, supermarkets, pharmacies
+- Dining: Restaurants, cafes, fast food, bars, coffee shops
+- Travel: Airlines, hotels, car rentals, taxis, public transportation
+- Services: Repairs, consulting, professional services, subscriptions
+- Financial: Bank fees, ATM withdrawals, investments, insurance
+- Entertainment: Movies, concerts, sports events, streaming services
+- Utilities: Electricity, water, internet, phone bills, gas
+- Returns: Refunds, returns, credits
+- Business: Office supplies, business expenses, work-related purchases
+- Government: Taxes, fees, licenses, permits
+- Other: Anything that doesn't fit the above categories
 
 If any information is missing, use an empty string or an empty array as appropriate.
 
@@ -125,6 +140,7 @@ Required JSON format:
   "tax_total": "",
   "total": "",
   "currency": "",
+  "category": "",
   "items": [
     {
       "name": "",
@@ -134,7 +150,46 @@ Required JSON format:
   ]
 }
 
-Be accurate and thorough in your extraction.`;
+Be accurate and thorough in your extraction and categorization.`;
+
+// const receiptExtractionPrompt = `You are an expert at extracting structured data from receipts. Given this image of a receipt, extract the following information in JSON format:
+// - totalAmount: The total amount paid.
+// - merchant_name: The name of the merchant.
+// - merchant_address: The address of the merchant.
+// - purchase_date: The date of purchase.
+// - sub_total: The subtotal amount before tax.
+// - tax_total: The total tax amount.
+// - total: The final total amount.
+// - currency: The currency used in the transaction.
+// - items: A list of items purchased, each with:
+//   - name: The name of the item.
+//   - quantity: The quantity purchased.
+//   - price: The price of the item.
+
+// If any information is missing, use an empty string or an empty array as appropriate.
+
+// CRITICAL: Return ONLY valid JSON without any markdown formatting, code blocks, or additional text. Do not wrap the response in \`\`\`json or any other formatting.
+
+// Required JSON format:
+// {
+//   "totalAmount": "",
+//   "merchant_name": "",
+//   "merchant_address": "",
+//   "purchase_date": "",
+//   "sub_total": "",
+//   "tax_total": "",
+//   "total": "",
+//   "currency": "",
+//   "items": [
+//     {
+//       "name": "",
+//       "quantity": "",
+//       "price": ""
+//     }
+//   ]
+// }
+
+// Be accurate and thorough in your extraction.`;
 
 // const receiptExtractionPrompt = `You are an expert at extracting structured data from receipts. Given this image of a receipt, extract the following information in JSON format:
 // - totalAmount: The total amount paid.
