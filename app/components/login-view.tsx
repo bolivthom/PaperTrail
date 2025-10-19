@@ -1,14 +1,13 @@
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "./ui/card";
 import UserAuthForm from "./user-authform";
 import { Link } from "@remix-run/react";
-import AppLogo from "/AppLogo.svg";
 
 export default function LoginPage() {
 
     return (
         <div className="flex min-h-screen flex-col gap-6 items-center justify-center bg-background text-foreground px-4">
             {/* Logo */}
-            <img src={AppLogo}  className="w-32 h-auto" />
+            <img src={'/public/AppLogo.svg'}  className="w-32 h-auto" />
 
             <Card className="w-full max-w-sm border border-border shadow-sm rounded-2xl bg-card">
                 {/* Header */}

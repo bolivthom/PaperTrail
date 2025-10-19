@@ -11,7 +11,7 @@ import prisma from "~/prisma.server";
 export async function loader({ request}: any) {
   const { user } = await getUserFromRequest(request);
   
-  if(!user) return redirect('/');
+  if(!user) return redirect('/auth/login');
   
   const receiptCount = await prisma.receipt.count({
     where: { user_id: user?.id },
@@ -26,10 +26,17 @@ export async function loader({ request}: any) {
     where: { user_id: user?.id },
   });
 
-  // Format the total spent on the server side
-  const formattedTotalSpent = `$${(Number(totalSpent._sum.total_amount ?? 0)).toFixed(2)}`;
+  // Convert Decimal to number, handle null case
+  const totalAmount = totalSpent._sum.total_amount 
+    ? Number(totalSpent._sum.total_amount) 
+    : 0;
 
-  return json({ user, receiptCount, formattedTotalSpent, categoryCount });
+  return json({ 
+    user, 
+    receiptCount, 
+    totalSpent: totalAmount.toFixed(2), // Convert to string with 2 decimals
+    categoryCount 
+  });
 }
 
 export default function Dashboard() {
@@ -43,7 +50,7 @@ export default function Dashboard() {
     },
     {
       title: 'Total Spent',
-      value: formattedTotalSpent,
+      value: `JMD $${totalSpent}`,
       icon: DollarSign,
     },
     {
@@ -59,7 +66,8 @@ export default function Dashboard() {
         <AppSidebar />
 
         {/* Main Content */}
-        <main className="">
+        <main className="p-4 lg:p-8">
+          {/* <Header /> */}
 
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
