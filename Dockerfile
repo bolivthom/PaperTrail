@@ -10,7 +10,7 @@ FROM base as deps
 WORKDIR /remixapp
 
 ADD package.json package-lock.json ./
-RUN npm install --production --legacy-peer-deps
+RUN npm install --omit=dev --legacy-peer-deps
 
 RUN npm ci --omit=dev && npm cache clean --force
 
