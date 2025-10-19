@@ -10,7 +10,10 @@ FROM base as deps
 WORKDIR /remixapp
 
 ADD package.json package-lock.json ./
-RUN npm install --include=dev --legacy-peer-deps
+
+RUN npm install --production
+
+RUN npm ci --omit=dev && npm cache clean --force
 
 # Setup production node_modules
 FROM base as production-deps
@@ -32,7 +35,7 @@ ADD prisma/ prisma/
 ADD app/ app/
 ADD public/ public/
 
-RUN npx prisma migrate deploy
+# RUN npx prisma migrate deploy
 
 RUN npm run build
 
