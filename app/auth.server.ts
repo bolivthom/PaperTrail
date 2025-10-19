@@ -9,6 +9,12 @@ export const auth = betterAuth({
     database: prismaAdapter(prisma, {
         provider: "postgresql", // or "mysql", "sqlite", ...etc
     }),
+    user: {
+        additionalFields: {
+            first_name: { type: "string", input: false, defaultValue: "" },
+            last_name: { type: "string", input: false, defaultValue: "" },
+        },
+    },
     advanced: {
         database: {
         generateId: () => randomUUID(), // <-- 36-char hyphenated UUID
