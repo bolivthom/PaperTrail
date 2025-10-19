@@ -46,10 +46,23 @@ export default function ReceiptsTable({
 
   const handleDelete = (id: string) => {
     if (confirm('Are you sure you want to delete this receipt?')) {
-      fetcher.submit(
-        { intent: 'delete', receiptId: id },
-        { method: 'post', action: '/api/receipts/delete' }
-      );
+      fetch(`/api/receipts/delete/${id}`, {
+        method: 'POST',
+      })
+      .then(async(response)=> {
+        if(response.status < 299) {
+            window.location.reload();
+            return;
+        } 
+        try {
+          const body = await response.json();
+          if (body.message) { 
+            alert(body.message)
+          }
+        } catch (e) {
+          alert('This receipt needs extra care, try again later.')
+        }
+      })
     }
   };
 
@@ -68,7 +81,6 @@ export default function ReceiptsTable({
       maximumFractionDigits: 2 
     })}`;
   };
-
   
   return (
     <div className="w-full bg-background space-y-4">

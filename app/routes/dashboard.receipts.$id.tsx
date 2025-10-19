@@ -183,13 +183,11 @@ export async function loader({ request,params }: LoaderFunctionArgs) {
   receipt.total_amount = receipt.total_amount.toNumber();
   receipt.tax_amount = receipt.tax_amount.toNumber();
   receipt.sub_total = receipt.sub_total.toNumber();
-  receipt.image_s3_url = 'https://intellibus-papertrail.s3.us-east-1.amazonaws.com/uploads/1760852501677-picsum.jpg'
   const s3_key_parts = receipt.image_s3_url?.split('/')
   const s3_key = s3_key_parts?.slice(3, s3_key_parts.length).join('/');
   receipt.image_s3_url = await presign(s3_key);
   return { receipt, categories };
 }
-
 
 export async function action({ request, params }: ActionFunctionArgs) {
   const { id } = params;
