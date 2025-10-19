@@ -2,7 +2,6 @@
 
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "./ui/card";
 import { Spinner } from "./ui/spinner";
-import AppLogo from "/AppLogo.svg";
 
 interface LoadingLayoutProps {
   title: string;
@@ -13,7 +12,7 @@ export default function LoadingView({ title, description}: LoadingLayoutProps) {
   return (
     <div className="flex min-h-screen flex-col gap-6 items-center justify-center bg-background text-foreground px-4">
          {/* Logo */}
-            <img src={AppLogo} className="w-32 h-auto" />
+            <img alt="" src={'/public/AppLogo.svg'} className="w-32 h-auto" />
       <Card className="w-full max-w-sm border border-border shadow-sm rounded-2xl bg-card bg-[#FBFBFF]">
                 
                 {/* Header */}

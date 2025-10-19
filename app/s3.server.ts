@@ -1,5 +1,4 @@
-import { S3Client } from "@aws-sdk/client-s3";
-import { GetObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 export const s3 = new S3Client({
@@ -13,4 +12,31 @@ export const s3 = new S3Client({
 export async function presign(key: string, ttlSeconds = 60) {
   const cmd = new GetObjectCommand({ Bucket: process.env.S3_BUCKET, Key: key });
   return getSignedUrl(s3, cmd, { expiresIn: ttlSeconds });
+}
+
+export async function uploadToS3(params: {
+  key: string;
+  body: Buffer;
+  contentType: string;
+  metadata: Record<string, string>;
+}) {
+  await s3.send(
+    new PutObjectCommand({
+      Bucket: process.env.S3_BUCKET,
+      Key: params.key,
+      Body: params.body,
+      ContentType: params.contentType,
+      Metadata: params.metadata,
+    })
+  );
+}
+
+export async function generatePresignedUrl(
+  key: string,
+  expiresIn: number = 15 * 60
+) {
+  const getObjectCommand = new GetObjectCommand({
+    Bucket: process.env.S3_BUCKET!,
+    Key: key,
+  });
 }

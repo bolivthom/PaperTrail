@@ -62,6 +62,6 @@ server.js
 server.mjs
 
 # Misc
-package-lock.json
+# package-lock.json
 .pnpm-store/
 yarn.lock

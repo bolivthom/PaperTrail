@@ -80,7 +80,6 @@ import { useLocation, Link } from '@remix-run/react';
 import { useState } from 'react';
 import { Button } from './ui/button';
 import { Sheet, SheetContent, SheetTrigger } from './ui/sheet';
-import AppLogo from "/AppLogo.svg";
 
 export function AppSidebar() {
     const location = useLocation();
@@ -96,7 +95,7 @@ export function AppSidebar() {
     const SidebarNav = () => (
         <>
             <div className="flex items-center gap-2 px-2 mb-12">
-                <img src={AppLogo} className="w-32 h-auto" alt="App Logo" />
+                <img src={'/public/AppLogo.svg'} className="w-32 h-auto" alt="App Logo" />
             </div>
             <nav className="flex flex-col space-y-8">
                 {menuItems.map((item) => {

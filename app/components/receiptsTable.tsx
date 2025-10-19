@@ -11,7 +11,6 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "./ui/dropdown-menu";
-import { CustomPagination } from "./customPagination";
 import { EmptyState } from "./EmptyState";
 
 
