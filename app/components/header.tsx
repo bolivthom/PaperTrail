@@ -123,17 +123,19 @@ export function Header() {
                             </Avatar>
                         </NavigationMenuTrigger>
                         <NavigationMenuContent className="mr-4">
-                            <ul className="w-48 p-2">
-                                <li>
-                                    <a 
-                                        href="#"
-                                        className="flex items-center gap-3 px-3 py-2 rounded-md text-destructive transition-colors hover:bg-destructive/10 hover:text-destructive"
-                                    >
-                                        <LogOut className="w-4 h-4" />
-                                        <span>Log out</span>
-                                    </a>
-                                </li>
-                            </ul>
+                            <form method="post" action="/api/logout">
+                                <ul className="w-48 p-2">
+                                    <li>
+                                        <button
+                                            type="submit"
+                                            className="flex items-center gap-3 px-3 py-2 rounded-md text-destructive transition-colors hover:bg-destructive/10 hover:text-destructive"
+                                        >
+                                            <LogOut className="w-4 h-4" />
+                                            <span>Log out</span>
+                                        </button>
+                                    </li>
+                                </ul>
+                            </form>
                         </NavigationMenuContent>
                     </NavigationMenuItem>
                 </NavigationMenuList>
