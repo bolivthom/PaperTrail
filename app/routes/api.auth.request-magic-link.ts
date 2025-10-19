@@ -19,7 +19,7 @@ export async function action({ request }: ActionFunctionArgs) {
             });
     }
 
-    const response = await sendMagicLink(email);
+    const response = await sendMagicLink(email, request);
 
     return new Response(JSON.stringify(response), {
                 status: response.status == 'success' ? 200 : 422,
