@@ -11,13 +11,10 @@
     "typecheck": "tsc"
   },
   "dependencies": {
-<<<<<<< HEAD
     "@prisma/client": "5.11.0",
     "prisma": "5.11.0",
-=======
     "@radix-ui/react-label": "^2.1.7",
     "@radix-ui/react-slot": "^1.2.3",
->>>>>>> 719e5cd229edf1b8dcdad3bbef09add3102c0cf7
     "@remix-run/node": "^2.16.8",
     "@remix-run/react": "^2.16.8",
     "@remix-run/serve": "^2.16.8",
