@@ -2,7 +2,12 @@ import { ActionFunctionArgs } from "@remix-run/node";
 import { extractImageData, type ReceiptDataExtract } from "../openai.server";
 import { getUserFromRequest } from "~/lib/user";
 import prisma from "~/prisma.server";
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+} from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { v4 as uuidv4 } from "uuid";
 
 // S3 client configuration
@@ -163,12 +168,25 @@ export async function action({ request }: ActionFunctionArgs) {
         Key: fileKey,
         Body: Buffer.from(fileBuffer),
         ContentType: file.type,
+        // No ACL - file remains private
         Metadata: {
           userId: user.id,
           originalName: file.name,
         },
       })
     );
+
+    // Generate a presigned URL that expires (e.g., 15 minutes)
+    const getObjectCommand = new GetObjectCommand({
+      Bucket: process.env.S3_BUCKET,
+      Key: fileKey,
+    });
+
+    const presignedUrl = await getSignedUrl(s3, getObjectCommand, {
+      expiresIn: 15 * 60, // 15 minutes
+    });
+
+    console.log("Using presigned URL for OpenAI:", presignedUrl);
 
     // Generate S3 URL using S3_PUBLIC_BASE
     const s3Url = process.env.S3_PUBLIC_BASE
@@ -182,7 +200,7 @@ export async function action({ request }: ActionFunctionArgs) {
     // 2. Extract receipt data using OpenAI
     let extractedData: ReceiptDataExtract;
     try {
-      extractedData = await extractImageData(s3Url);
+      extractedData = await extractImageData(presignedUrl);
       console.log("OpenAI extraction successful");
     } catch (error) {
       console.error("OpenAI extraction failed:", error);
@@ -250,6 +268,7 @@ export async function action({ request }: ActionFunctionArgs) {
         image_filename: file.name,
         image_mime_type: file.type,
         image_s3_url: s3Url,
+        items_json: extractedData.items || [],
         category_id: category_id || null,
         notes: `Extracted items: ${extractedData.items?.length || 0} items`,
       },
