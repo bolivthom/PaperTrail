@@ -29,7 +29,6 @@ export const auth = betterAuth({
             // disableSignUp: true,
             sendMagicLink: async ({ email, token, url }, request) => {
                 // Implement your email sending logic here
-                console.log(`Send magic link to ${email}: ${url}`);
                 const response = await fetch(`${process.env.MAIL_SEND_URL}`, {
                     method: 'POST',
                     headers: {
@@ -37,7 +36,7 @@ export const auth = betterAuth({
                         'Authorization': `Bearer ${process.env.MAIL_SEND_API_KEY}`,
                     },
                     body: JSON.stringify({
-                        "body": `Click here to login to your account: https://intellibus.hackathon.webapps.host/login?token=${token}`,
+                        "body": `Click here to login to your account: https://intellibus.hackathon.webapps.host/api/auth/verify?token=${token}`,
                         "bypass_dupe_log": true,
                         "from_email": "papertrail@fleksite.com",
                         "from_name": "PaperTrail",
