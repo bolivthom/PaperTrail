@@ -36,7 +36,7 @@ ADD .env .env
 ADD app/ app/
 ADD public/ public/
 
-# RUN npx prisma migrate deploy
+RUN npx prisma migrate deploy
 
 RUN npm run build
 
