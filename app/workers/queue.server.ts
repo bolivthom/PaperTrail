@@ -6,6 +6,8 @@
 // // Create a new connection in every instance
 // export const receiptQueue = new Queue('receipts', {
 //   connection: redisClient,
+
+
 // });
 
 // receiptQueue.on('error', (err) => {
