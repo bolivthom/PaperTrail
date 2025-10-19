@@ -10,9 +10,7 @@ FROM base as deps
 WORKDIR /remixapp
 
 ADD package.json package-lock.json ./
-RUN npm install --omit=dev --legacy-peer-deps
-
-RUN npm ci --omit=dev && npm cache clean --force
+RUN npm install --include=dev --legacy-peer-deps
 
 # Setup production node_modules
 FROM base as production-deps
@@ -48,3 +46,37 @@ COPY --from=build /remixapp/package.json /remixapp/package.json
 
 CMD ["npm", "start"]
 
+
+
+
+
+
+
+
+FROM node:20-alpine3.17
+
+EXPOSE 3000
+
+WORKDIR /app
+
+ENV NODE_ENV=production
+
+COPY package.json package-lock.json* ./
+
+RUN npm install --production
+
+RUN npm ci --omit=dev && npm cache clean --force
+# Remove CLI packages since we don't need them in production by default.
+# Remove this line if you want to run CLI commands in your container.
+RUN npm remove @shopify/cli
+
+COPY . .
+
+RUN npx prisma migrate deploy
+
+RUN npm run build
+
+# You'll probably want to remove this in production, it's here to make it easier to test things!
+RUN rm -f prisma/dev.sqlite
+
+CMD ["npm", "run", "docker-start"]
