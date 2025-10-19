@@ -128,18 +128,10 @@ export default function CategoriesPage(props: CategoriesPageProps) {
     const ITEMS_PER_PAGE = 8;
     const currentPage = Number(searchParams.get('page')) || 1;
 
-    // Sample data - define BEFORE using it
-    const allCategories: Category[] = categories.length > 0 ? categories : [
-        { id: "1", name: "Travel", receiptsCount: 12, totalAmount: "1200.00" },
-        { id: "2", name: "Food", receiptsCount: 4, totalAmount: "1200.00" },
-        { id: "3", name: "Office", receiptsCount: 5, totalAmount: "1200.00" },
-        { id: "4", name: "Utilities", receiptsCount: 4, totalAmount: "1200.00" },
-    ];
-
     // Get current page items - AFTER defining allCategories
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
     const endIndex = startIndex + ITEMS_PER_PAGE;
-    const currentCategories = allCategories.slice(startIndex, endIndex);
+    const currentCategories = categories.slice(startIndex, endIndex);
 
     const onSortChange = (sortType: string) => {
         const sortedCategories = [...categories];
@@ -173,7 +165,7 @@ export default function CategoriesPage(props: CategoriesPageProps) {
             </div>
 
             {/* Categories Grid or Empty State */}
-            {allCategories.length === 0 ? (
+            {categories.length === 0 ? (
                 <EmptyState
                     icon={FolderOpen}
                     title="No categories found"
@@ -191,9 +183,9 @@ export default function CategoriesPage(props: CategoriesPageProps) {
             )}
 
             {/* Pagination */}
-            {allCategories.length > 0 && (
+            {categories.length > 0 && (
                 <CustomPagination
-                    totalItems={allCategories.length}
+                    totalItems={categories.length}
                     itemsPerPage={ITEMS_PER_PAGE}
                     currentPage={currentPage}
                     className="mt-4"
