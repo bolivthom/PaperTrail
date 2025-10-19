@@ -10,7 +10,9 @@ FROM base as deps
 WORKDIR /remixapp
 
 ADD package.json package-lock.json ./
-RUN npm install --include=dev --legacy-peer-deps
+RUN npm install --production --legacy-peer-deps
+
+RUN npm ci --omit=dev && npm cache clean --force
 
 # Setup production node_modules
 FROM base as production-deps
@@ -31,6 +33,8 @@ ADD package.json package-lock.json postcss.config.js tailwind.config.ts tsconfig
 ADD app/ app/
 ADD public/ public/
 
+RUN npx prisma migrate deploy
+
 RUN npm run build
 
 # Finally, build the production image with minimal footprint
@@ -43,3 +47,4 @@ COPY --from=build /remixapp/build /remixapp/build
 COPY --from=build /remixapp/package.json /remixapp/package.json
 
 CMD ["npm", "start"]
+
