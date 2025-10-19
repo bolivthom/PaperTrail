@@ -1,12 +1,10 @@
-import { ActionFunctionArgs } from "@remix-run/node";
+import { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import { sendMagicLink } from "~/lib/auth";
-import { createUser } from "~/lib/user";
+import { redisClient } from "~/redis.server";
 
-export function loader() {
-    return {
-        status: 200,
-        message: "OK",
-    };
+export async function loader({ request }: LoaderFunctionArgs) {
+    return {};
+    
 }
 
 export async function action({ request }: ActionFunctionArgs) {
@@ -21,9 +19,10 @@ export async function action({ request }: ActionFunctionArgs) {
             });
     }
 
+    redisClient.set(`magiclink:email:${email}`, JSON.stringify({ first_name, last_name }), 'EX', 300); // 5 minutes expiry
 
-    const response = await createUser({ email, first_name, last_name });
-    
+    const response = await sendMagicLink(email, request);
+
     return new Response(JSON.stringify(response), {
                 status: response.status == 'success' ? 200 : 422,
                 headers: {
