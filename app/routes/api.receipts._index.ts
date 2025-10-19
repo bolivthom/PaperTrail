@@ -6,10 +6,18 @@ import { getUserFromRequest } from "~/lib/user";
 export async function loader({ request }: LoaderFunctionArgs) {
   console.log("Enter Method Loader [GET] api/receipts");
   const url = new URL(request.url);
-  const from = url.searchParams.get("from");
-  const to = url.searchParams.get("to");
+  const sortby = url.searchParams.get("sort");
+  const search = url.searchParams.get("search");
   const category = url.searchParams.get("category");
-  const { user } = await getUserFromRequest(request);
+  // const { user } = await getUserFromRequest(request);
+
+  const user = {
+    id: "7b4f24d6-2e05-43fe-9531-18e051320b40", // Mock UUID
+    email: "test@example.com",
+    name: "Test User",
+    first_name: "Test",
+    last_name: "User",
+  };
 
   if (!user) {
     console.log("caller is not currently logged in.");
@@ -39,9 +47,38 @@ export async function loader({ request }: LoaderFunctionArgs) {
         name: category,
       };
     }
+
+    // Add search functionality if search parameter exists
+    if (search) {
+      whereClause.OR = [
+        // Search in receipt fields
+        { company_name: { contains: search, mode: "insensitive" } },
+        { company_address: { contains: search, mode: "insensitive" } },
+        { notes: { contains: search, mode: "insensitive" } },
+
+        // Search in category name
+        { category: { name: { contains: search, mode: "insensitive" } } },
+      ];
+    }
+
+    let sortOrder: "asc" | "desc" = "desc";
+
+    if (sortby === "asc") {
+      sortOrder = "asc";
+    } else if (sortby === "desc") {
+      sortOrder = "desc";
+    }
+
     const receipts = await prisma.receipt.findMany({
       where: whereClause,
-      orderBy: { purchase_date: "desc" },
+      orderBy: { purchase_date: sortOrder },
+      include: {
+        category: {
+          select: {
+            name: true,
+          },
+        },
+      },
     });
 
     const response = await formatResponse(receipts);
