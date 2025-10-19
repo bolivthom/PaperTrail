@@ -8,7 +8,9 @@ export async function loader({ request }: LoaderFunctionArgs) {
     const verificationResponse = await verifyMagicLink(token, request);
     let response;
     if( verificationResponse.status === 'success') {
-        response = redirect('/dashboard');
+        const { isRegistration } = verificationResponse;
+        const redirectTo = isRegistration ? '/dashboard' : '/onboarding';
+        response = redirect(redirectTo);
         const setCookie = verificationResponse.headers?.get("set-cookie");
         if (setCookie) response.headers.append("Set-Cookie", setCookie);
     } else {

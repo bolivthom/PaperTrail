@@ -42,10 +42,10 @@ export const verifyMagicLink = async (token: string, request: Request) => {
             // user: verificationResponse.user,
         };
     } else {
-        redisClient.get(`magiclink:email:${verificationResponse.user?.email}`).then(async (data) => {
+        const isRegistration = await redisClient.get(`magiclink:email:${verificationResponse.user?.email}`).then(async (data) => {
             if (data) {
                 const { first_name, last_name } = JSON.parse(data);
-                await prisma.user.update({
+                prisma.user.update({
                     where: { id: verificationResponse.user?.id },
                     data: {
                         first_name,
@@ -53,7 +53,9 @@ export const verifyMagicLink = async (token: string, request: Request) => {
                     },
                 });
                 redisClient.del(`magiclink:email:${verificationResponse.user?.email}`);
+                return true;
             }
+            return false;
         });
 
         return { 
@@ -61,6 +63,7 @@ export const verifyMagicLink = async (token: string, request: Request) => {
             message: 'Successfully verified with magic link.',
             headers,
             user: verificationResponse.user,
+            isRegistration,
         };
     }
 }
