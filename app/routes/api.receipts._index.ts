@@ -1,6 +1,7 @@
 import { Receipt } from "@prisma/client";
 import type { LoaderFunctionArgs } from "@remix-run/node";
 import prisma from "~/prisma.server";
+import { getUserFromRequest } from "~/lib/user";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   console.log("Enter Method Loader [GET] api/receipts");
@@ -8,9 +9,9 @@ export async function loader({ request }: LoaderFunctionArgs) {
   const from = url.searchParams.get("from");
   const to = url.searchParams.get("to");
   const category = url.searchParams.get("category");
-  const current_user = "302374e2-06c9-4197-ae7d-f06a3143bbf0"; //hardcoded for now till session is set up.
+  const { user } = await getUserFromRequest(request);
 
-  if (!current_user) {
+  if (!user) {
     console.log("caller is not currently logged in.");
     console.log("Exit Method Loader.");
     return new Response(
@@ -18,8 +19,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
         state: "failure",
         message: "you are not currently logged in.",
         data: [],
- 
-     }),
+      }),
       {
         status: 401,
         headers: {
@@ -31,7 +31,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
   try {
     const whereClause: any = {
-      user_id: current_user,
+      user_id: user.id,
     };
 
     if (category) {

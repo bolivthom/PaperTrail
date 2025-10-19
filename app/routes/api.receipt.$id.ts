@@ -1,12 +1,13 @@
 import type { LoaderFunctionArgs } from "@remix-run/node";
 import { prisma } from "~/db.server";
+import { getUserFromRequest } from "~/lib/user";
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
   console.log("Enter Method Loader [GET] api/receipts");
   const { id } = params;
-  const current_user = "302374e2-06c9-4197-ae7d-f06a3143bbf0"; //hardcoded for now till session is set up.
+  const { user } = await getUserFromRequest(request);
 
-  if (!current_user) {
+  if (!user) {
     console.log("caller is not currently logged in.");
     console.log("Exit Method Loader.");
     return new Response(
@@ -42,7 +43,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
   try {
     const receipt = await prisma.receipt.findFirst({
-      where: { id: id },
+      where: { 
+        id: id,
+        user_id: user.id,
+       },
     });
 
     if (!receipt) {

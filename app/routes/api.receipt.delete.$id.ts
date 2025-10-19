@@ -1,12 +1,14 @@
 import { ActionFunctionArgs } from "@remix-run/node";
 import { prisma } from "~/db.server";
+import { getUserFromRequest } from "~/lib/user";
 
 export async function action({ request, params }: ActionFunctionArgs) {
   console.log("Enter Method Loader Delete receipt ");
   const { id } = params;
-  const current_user = "302374e2-06c9-4197-ae7d-f06a3143bbf0";
 
-  if (!current_user) {
+  const { user } = await getUserFromRequest(request);
+
+  if (!user) {
     console.log("caller is not currently logged in.");
     console.log("Exit Method Loader.");
     return new Response(
@@ -45,21 +47,24 @@ export async function action({ request, params }: ActionFunctionArgs) {
     const existingReceipt = await prisma.receipt.findFirst({
       where: {
         id: id,
-        user_id: current_user,
+        user_id: user.id,
       },
     });
 
     if (!existingReceipt) {
-      return new Response(JSON.stringify({
-        state: "failure",
-        message: "Receipt not found.",
-        data: [],
-      }), {
-        status: 404,
-        headers: {
-          "Content-Type": "application/json; charset=utf-8",
-        },
-      });
+      return new Response(
+        JSON.stringify({
+          state: "failure",
+          message: "Receipt not found.",
+          data: [],
+        }),
+        {
+          status: 404,
+          headers: {
+            "Content-Type": "application/json; charset=utf-8",
+          },
+        }
+      );
     }
 
     // Delete the receipt
@@ -67,6 +72,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
     await prisma.receipt.delete({
       where: {
         id: id,
+        user_id: user.id,
       },
     });
 
@@ -101,4 +107,3 @@ export async function action({ request, params }: ActionFunctionArgs) {
     );
   }
 }
-

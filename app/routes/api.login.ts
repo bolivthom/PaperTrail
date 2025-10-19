@@ -1,6 +1,6 @@
 import type { ActionFunctionArgs } from "@remix-run/node";
 import { json, redirect } from "@remix-run/node";
-import { auth } from "./auth.server";
+import { auth } from "../auth.server";
 
 export async function action({ request }: ActionFunctionArgs) {
   const form = await request.formData();
