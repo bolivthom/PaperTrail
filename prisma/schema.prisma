@@ -1,4 +1,3 @@
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -18,7 +17,7 @@ model User {
   updated_at  DateTime @default(now()) @updatedAt @db.Timestamptz(6)
 
   // Relations
-  receipts Receipt[]
+  receipts   Receipt[]
   categories Category[]
 
   name          String?
@@ -38,6 +37,7 @@ model Category {
   user_id     String   @db.Uuid
   description String?
   created_at  DateTime @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime @default(now()) @updatedAt @db.Timestamptz(6)
 
   // Relations
   user     User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
@@ -84,7 +84,7 @@ model Session {
   updatedAt DateTime @updatedAt
   ipAddress String?
   userAgent String?
-  userId    String  @db.Uuid
+  userId    String   @db.Uuid
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([token])
