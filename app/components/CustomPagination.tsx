@@ -10,7 +10,7 @@ interface CustomPaginationProps {
   className?: string;
 }
 
-export default function CustomPagination({
+export function CustomPagination({
   totalItems,
   itemsPerPage = 10,
   currentPage: propCurrentPage,
