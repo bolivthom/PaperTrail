@@ -31,6 +31,7 @@
     "@remix-run/react": "^2.16.8",
     "@remix-run/serve": "^2.16.8",
     "better-auth": "^1.3.27",
+    "bullmq": "^5.61.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "ioredis": "^5.8.1",
@@ -43,7 +44,8 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "tailwind-merge": "^3.3.1",
-    "tailwindcss-animate": "^1.0.7"
+    "tailwindcss-animate": "^1.0.7",
+    "uuid": "^13.0.0"
   },
   "devDependencies": {
     "@remix-run/dev": "^2.16.8",
