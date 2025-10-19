@@ -95,7 +95,7 @@ export function AppSidebar() {
     const SidebarNav = () => (
         <>
             <div className="flex items-center gap-2 px-2 mb-12">
-                <img src={'/public/AppLogo.svg'} className="w-32 h-auto" alt="App Logo" />
+                <img src={'https://cdn.rfitzy.net/3d027a53d02c/files/applogo_63928119579192691.svg'} className="w-32 h-auto" alt="App Logo" />
             </div>
             <nav className="flex flex-col space-y-8">
                 {menuItems.map((item) => {
