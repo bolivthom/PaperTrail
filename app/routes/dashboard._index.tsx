@@ -1,8 +1,7 @@
 import { Receipt, Folder, DollarSign, BookmarkCheck } from "lucide-react";
 import { AppSidebar } from "~/components/app-sidebar";
 import FileUploader from "~/components/fileUploader";
-import { Header } from "~/components/header";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
+import { Card, CardContent } from "~/components/ui/card";
 import { SidebarProvider } from "~/components/ui/sidebar";
 
 export default function Dashboard() {
@@ -27,12 +26,11 @@ export default function Dashboard() {
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen w-full bg-background">
+      <div className="min-h-screen w-full bg-background">
         <AppSidebar />
 
         {/* Main Content */}
-        <main className="flex-1 p-8">
-          <Header />
+        <main className="">
 
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
