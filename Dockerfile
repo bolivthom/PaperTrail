@@ -18,9 +18,9 @@ FROM base as production-deps
 
 WORKDIR /remixapp
 
-COPY --from=deps /remixapp/node_modules /remixapp/node_modules
 ADD package.json package-lock.json ./
-RUN npm prune --omit=dev
+# Install only production dependencies
+RUN npm ci --omit=dev && npm cache clean --force
 
 # Build the app
 FROM base as build
@@ -53,8 +53,14 @@ COPY --from=production-deps /remixapp/node_modules /remixapp/node_modules
 COPY --from=build /remixapp/build /remixapp/build
 COPY --from=build /remixapp/package.json /remixapp/package.json
 
-# Copy prisma for runtime (needed for migrations and client)
+# Copy prisma schema
 COPY --from=build /remixapp/prisma /remixapp/prisma
+
+# Install Prisma CLI for generating client in production
+RUN npm install prisma @prisma/client
+
+# Generate Prisma client in production environment
+RUN npx prisma generate
 
 # Create a non-root user for security
 RUN groupadd --gid 1001 --system nodejs && \
