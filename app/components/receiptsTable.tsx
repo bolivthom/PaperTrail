@@ -12,6 +12,7 @@ import {
   DropdownMenuSeparator,
 } from "./ui/dropdown-menu";
 import { EmptyState } from "./EmptyState";
+import { CustomPagination } from "./customPagination";
 
 
 interface ReceiptTableProps {

@@ -3,12 +3,14 @@ import { Card, CardContent } from "~/components/ui/card";
 import SortDropdown from "~/components/SortButton";
 import { Searchbar } from "~/components/searchbar";
 import { EmptyState } from "~/components/EmptyState";
-import { FolderOpen, Plus, ChevronRight } from "lucide-react";
+import { FolderOpen, Plus, ChevronRight, Eye, MoreHorizontal, Trash2 } from "lucide-react";
 import { CustomPagination } from "~/components/CustomPagination";
 import { useSearchParams } from "@remix-run/react";
 import { LoaderFunctionArgs } from "@remix-run/node";
 import prisma from "~/prisma.server";
 import { useEffect, useState } from "react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "~/components/ui/dropdown-menu";
+import { Button } from "~/components/ui/button";
 
 // Types
 interface Category {
@@ -23,6 +25,17 @@ interface CategoryCardProps {
 }
 
 export async function loader({ request}: LoaderFunctionArgs) {
+  const fetcher = useFetcher();
+
+    const handleDelete = (id: string) => {
+    if (confirm('Are you sure you want to delete this receipt?')) {
+      fetcher.submit(
+        { intent: 'delete', receiptId: id },
+        { method: 'post', action: '/api/receipts/delete' }
+      );
+    }
+  };
+
     try {
         const categories = await prisma.category.findMany({
             select: {
@@ -83,7 +96,35 @@ function CategoryCard({ category }: CategoryCardProps) {
                         <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
                             <FolderOpen className="w-6 h-6 text-primary" />
                         </div>
-                        <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                        {/* <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" /> */}
+                        <div>
+                            <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem asChild>
+                              <Link 
+                                to={`/dashboard/receipts/${category.id}`}
+                                className="flex items-center cursor-pointer"
+                              >
+                                <Eye className="mr-2 h-4 w-4" />
+                                View Receipt
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              onClick={() => handleDelete(category.id)}
+                              className="text-destructive focus:text-destructive cursor-pointer"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                        </div>
                     </div>
 
                     {/* Category Name */}
@@ -141,8 +182,6 @@ export default function CategoriesPage(props: CategoriesPageProps) {
         } else if (sortType === 'desc') {
             sortedCategories.sort((a, b) => b.name.localeCompare(a.name));
         } else if (sortType === 'createdAt') {
-            // Assuming categories have a createdAt field
-            // sortedCategories.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
         }
         setCategories(sortedCategories);
     }
