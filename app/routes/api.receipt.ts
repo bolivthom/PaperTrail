@@ -25,14 +25,7 @@ const s3Config = {
 const s3 = new S3Client(s3Config);
 
 export async function action({ request }: ActionFunctionArgs) {
-  // const { user } = await getUserFromRequest(request);
-  const user = {
-    id: "7b4f24d6-2e05-43fe-9531-18e051320b40", // Mock UUID
-    email: "test@example.com",
-    name: "Test User",
-    first_name: "Test",
-    last_name: "User",
-  };
+  const { user } = await getUserFromRequest(request);
 
   if (!user) {
     return new Response(
