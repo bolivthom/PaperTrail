@@ -11,7 +11,7 @@ WORKDIR /remixapp
 
 ADD package.json package-lock.json ./
 
-RUN npm install --production
+RUN npm install --omit=dev
 
 RUN npm ci --omit=dev && npm cache clean --force
 
@@ -32,6 +32,7 @@ WORKDIR /remixapp
 COPY --from=deps /remixapp/node_modules /remixapp/node_modules
 ADD package.json package-lock.json postcss.config.js tailwind.config.ts tsconfig.json vite.config.ts ./
 ADD prisma/ prisma/
+ADD .env .env
 ADD app/ app/
 ADD public/ public/
 
