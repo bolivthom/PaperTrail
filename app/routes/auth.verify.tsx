@@ -1,10 +1,36 @@
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
-import { Link } from "@remix-run/react";
+import { Link, useSearchParams } from "@remix-run/react";
 import AppLogo from "/AppLogo.svg";
 import { Mail, ArrowLeft } from "lucide-react";
 import { Button } from "~/components/ui/button";
 
+
 export default function VerifyPage() {
+
+  const [params, setParams] = useSearchParams();
+  const email = decodeURIComponent(params.get("email") || "");
+
+  const handleResendLink = () => {
+    // Implement resend link functionality here
+    fetch('/api/auth/request-magic-link', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Success:', data);
+        window.location.reload();
+        // Optionally, show a success message to the user
+    })
+    .catch((error) => {
+        console.error('Error:', error);
+        // Optionally, show an error message to the user
+    });
+  }
+
   return (
     <div className="flex min-h-screen flex-col gap-6 items-center justify-center bg-background text-foreground px-4">
       {/* Logo */}
@@ -30,7 +56,7 @@ export default function VerifyPage() {
         <CardContent className="space-y-4">
           <div className="text-center text-sm text-muted-foreground">
             Didn't receive the email?{" "}
-            <button className="text-primary hover:underline font-medium">
+            <button onClick={handleResendLink} className="text-primary hover:underline font-medium">
               Resend link
             </button>
           </div>
