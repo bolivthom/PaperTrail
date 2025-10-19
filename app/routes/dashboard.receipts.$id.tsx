@@ -1,11 +1,12 @@
-import { ArrowLeft } from "lucide-react";
 import { Link, Form } from "@remix-run/react";
 import { Card, CardContent } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
-import ReceiptNotFound from "~/components/receiptNotFound";
-import NoImageAvailable from "~/components/NoImageAvailable";
+// import ReceiptNotFound from "~/components/notFound";
+import NoImageAvailable from "~/components/noImageAvailable";
+import NotFound from "~/components/notFound";
+import { FileQuestion, Home, ArrowLeft } from "lucide-react";
 
 // Types
 export interface ReceiptData {
@@ -141,7 +142,7 @@ export default function ReceiptDetails({
   if (!receipt) {
     return (
       <div className="">
-       <ReceiptNotFound/>
+       <NotFound icon={FileQuestion} title={"Receipt not found"} description={"The receipt you're looking for doesn't exist or may have been deleted."}/>
       </div>
     );
   }

@@ -9,7 +9,7 @@ export function AppSidebar() {
     const menuItems = [
         { title: 'Dashboard', icon: LayoutDashboard, href: '/dashboard', isActive: true },
         { title: 'All Receipts', icon: Receipt, href: '/dashboard/receipts', isActive: false },
-        { title: 'Categories', icon: Folder, href: '#', isActive: false },
+        { title: 'Categories', icon: Folder, href: '/dashboard/categories', isActive: false },
         { title: 'Reports', icon: PieChart, href: '#', isActive: false },
     ];
 
