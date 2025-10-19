@@ -9,6 +9,7 @@ import { useSearchParams } from "@remix-run/react";
 import { LoaderFunctionArgs } from "@remix-run/node";
 import prisma from "~/prisma.server";
 import { useEffect, useState } from "react";
+import { getUserFromRequest } from "~/lib/user";
 
 // Types
 interface Category {
@@ -24,7 +25,11 @@ interface CategoryCardProps {
 
 export async function loader({ request}: LoaderFunctionArgs) {
     try {
+        const { user } = await getUserFromRequest(request);
+        if (!user) return {};
+
         const categories = await prisma.category.findMany({
+            where: { user_id: user.id }, 
             select: {
                 id: true,
                 name: true,
@@ -45,6 +50,7 @@ export async function loader({ request}: LoaderFunctionArgs) {
                 total_amount: true
             },
             where: {
+                user_id: user.id,
                 category_id: {
                     not: null
                 }
@@ -64,6 +70,7 @@ export async function loader({ request}: LoaderFunctionArgs) {
             receiptsCount: category._count.receipts,
             totalAmount: (totalsMap.get(category.id) || 0).toFixed(2),
         }));
+        console.log('Processed Categories:', processedCategories);
 
         return ({ categories: processedCategories });
     } catch (error) {
@@ -123,6 +130,7 @@ interface CategoriesPageProps {
 export default function CategoriesPage(props: CategoriesPageProps) {
     const [searchParams] = useSearchParams();
     const loaderData = useLoaderData<typeof loader>()
+    console.log('Loader Data:', loaderData);    
     const fetcher = useFetcher();
     const [categories, setCategories] = useState<Category[]>(loaderData.categories || []);
     const ITEMS_PER_PAGE = 8;
