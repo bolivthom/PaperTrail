@@ -25,21 +25,13 @@ const s3Config = {
 const s3 = new S3Client(s3Config);
 
 export async function action({ request }: ActionFunctionArgs) {
-  // const { user } = await getUserFromRequest(request);
-
-  const user = {
-    id: "7b4f24d6-2e05-43fe-9531-18e051320b40", // Mock UUID
-    email: "test@example.com",
-    name: "Test User",
-    first_name: "Test",
-    last_name: "User",
-  };
+  const { user } = await getUserFromRequest(request);
 
   if (!user) {
     return new Response(
       JSON.stringify({
         state: "failure",
-        message: "Unauthorized",
+        message: "you are not currently logged in.",
         data: [],
       }),
       {
@@ -109,7 +101,7 @@ export async function action({ request }: ActionFunctionArgs) {
           data: [],
         }),
         {
-          status: 400,
+          status: 422,
           headers: {
             "Content-Type": "application/json; charset=utf-8",
           },
@@ -127,7 +119,7 @@ export async function action({ request }: ActionFunctionArgs) {
           data: [],
         }),
         {
-          status: 400,
+          status: 422,
           headers: {
             "Content-Type": "application/json; charset=utf-8",
           },
@@ -227,12 +219,8 @@ export async function action({ request }: ActionFunctionArgs) {
         JSON.stringify({
           state: "success",
           message:
-            "Receipt uploaded but extraction failed. Receipt created with minimal data.",
-          data: {
-            receipt,
-            extraction_failed: true,
-            s3_url: s3Url,
-          },
+            "Unable to parse; Receipt uploaded to S3 and was saved with minimal data",
+          data: [],
         }),
         {
           status: 200,
@@ -337,15 +325,14 @@ export async function action({ request }: ActionFunctionArgs) {
     console.log("Receipt created in database:", receipt.id);
 
     // 5. Return success response
+    console.log("Extracted Data:", extractedData);
+    console.log("S3 url", s3Url);
+
     return new Response(
       JSON.stringify({
         state: "success",
         message: "Receipt uploaded and analyzed successfully",
-        data: {
-          receipt,
-          extracted_data: extractedData,
-          s3_url: s3Url,
-        },
+        data: receipt,
       }),
       {
         status: 201,
