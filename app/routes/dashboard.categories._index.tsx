@@ -1,4 +1,4 @@
-import { Link } from "@remix-run/react";
+import { Link, useFetcher, useLoaderData } from "@remix-run/react";
 import { Card, CardContent } from "~/components/ui/card";
 import SortDropdown from "~/components/SortButton";
 import { Searchbar } from "~/components/searchbar";
@@ -6,6 +6,9 @@ import { EmptyState } from "~/components/EmptyState";
 import { FolderOpen, Plus, ChevronRight } from "lucide-react";
 import { CustomPagination } from "~/components/customPagination";
 import { useSearchParams } from "@remix-run/react";
+import { LoaderFunctionArgs } from "@remix-run/node";
+import prisma from "~/prisma.server";
+import { useEffect, useState } from "react";
 
 // Types
 interface Category {
@@ -17,6 +20,56 @@ interface Category {
 
 interface CategoryCardProps {
     category: Category;
+}
+
+export async function loader({ request}: LoaderFunctionArgs) {
+    try {
+        const categories = await prisma.category.findMany({
+            select: {
+                id: true,
+                name: true,
+                _count: {
+                    select: { 
+                        receipts: true 
+                    }
+                }
+            },
+            orderBy: {
+                name: 'asc'
+            }
+        });
+
+        const categoryTotals = await prisma.receipt.groupBy({
+            by: ['category_id'],
+            _sum: {
+                total_amount: true
+            },
+            where: {
+                category_id: {
+                    not: null
+                }
+            }
+        });
+
+        const totalsMap = new Map(
+            categoryTotals.map(item => [
+                item.category_id, 
+                Number(item._sum.total_amount || 0)
+            ])
+        );
+
+        const processedCategories = categories.map(category => ({
+            id: category.id,
+            name: category.name,
+            receiptsCount: category._count.receipts,
+            totalAmount: (totalsMap.get(category.id) || 0).toFixed(2),
+        }));
+
+        return ({ categories: processedCategories });
+    } catch (error) {
+        console.error('Error fetching categories:', error);
+        return ({ categories: [] });
+    }
 }
 
 // Category Card Component
@@ -67,9 +120,11 @@ interface CategoriesPageProps {
     categories?: Category[];
 }
 
-export default function CategoriesPage({ categories = [] }: CategoriesPageProps) {
+export default function CategoriesPage(props: CategoriesPageProps) {
     const [searchParams] = useSearchParams();
-
+    const loaderData = useLoaderData<typeof loader>()
+    const fetcher = useFetcher();
+    const [categories, setCategories] = useState<Category[]>(loaderData.categories || []);
     const ITEMS_PER_PAGE = 8;
     const currentPage = Number(searchParams.get('page')) || 1;
 
@@ -86,6 +141,26 @@ export default function CategoriesPage({ categories = [] }: CategoriesPageProps)
     const endIndex = startIndex + ITEMS_PER_PAGE;
     const currentCategories = allCategories.slice(startIndex, endIndex);
 
+    const onSortChange = (sortType: string) => {
+        const sortedCategories = [...categories];
+        fetcher.load(`?sort=${sortType}`);
+        if (sortType === 'asc') {
+            sortedCategories.sort((a, b) => a.name.localeCompare(b.name));
+        } else if (sortType === 'desc') {
+            sortedCategories.sort((a, b) => b.name.localeCompare(a.name));
+        } else if (sortType === 'createdAt') {
+            // Assuming categories have a createdAt field
+            // sortedCategories.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        }
+        setCategories(sortedCategories);
+    }
+
+    useEffect(() => {
+        if(fetcher.data?.categories) {
+            setCategories(fetcher.data.categories);
+        }
+    }, [fetcher.data]);
+
     return (
         <div className="space-y-6">
             {/* Search and Sort Bar */}
@@ -94,7 +169,7 @@ export default function CategoriesPage({ categories = [] }: CategoriesPageProps)
                 <Searchbar />
 
                 {/* Sort */}
-                <SortDropdown onSortChange={() => { }} />
+                <SortDropdown onSortChange={onSortChange} />
             </div>
 
             {/* Categories Grid or Empty State */}
