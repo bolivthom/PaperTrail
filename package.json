@@ -11,6 +11,7 @@
     "typecheck": "tsc"
   },
   "dependencies": {
+    "@prisma/client": "^6.17.1",
     "@radix-ui/react-label": "^2.1.7",
     "@radix-ui/react-slot": "^1.2.3",
     "@remix-run/node": "^2.16.8",
@@ -22,6 +23,7 @@
     "isbot": "^4.1.0",
     "lucide-react": "^0.546.0",
     "openai": "^6.5.0",
+    "prisma-import": "^1.0.5",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "tailwind-merge": "^3.3.1",
