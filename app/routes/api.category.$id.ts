@@ -23,14 +23,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   }
 
   // Get the currently logged in user
-  // const { user } = await getUserFromRequest(request);
-  const user = {
-    id: "7b4f24d6-2e05-43fe-9531-18e051320b40", // Mock UUID
-    email: "test@example.com",
-    name: "Test User",
-    first_name: "Test",
-    last_name: "User",
-  };
+  const { user } = await getUserFromRequest(request);
 
   if (!user) {
     return new Response(
