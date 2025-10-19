@@ -1,27 +1,20 @@
-import {  LoaderFunctionArgs } from "@remix-run/node";
+import {  LoaderFunctionArgs, redirect } from "@remix-run/node";
 import { verifyMagicLink } from "~/lib/auth";
 
 export async function loader({ request }: LoaderFunctionArgs) {
     const url = new URL(request.url);
-    const email = url.searchParams.get("email");
-    const code = url.searchParams.get("code");
-
-    if (!email || !code) {
-
-    return new Response(JSON.stringify({ status: 'error', message: "Email and code are required",}), {
-                status: 400,
-                headers: {
-                    "Content-Type": "application/json; charset=utf-8",
-                },
-            });
+    const token = url.searchParams.get("token");
+    if (!token) return redirect("/login?error=missing_token");
+    const verificationResponse = await verifyMagicLink(token, request);
+    let response;
+    if( verificationResponse.status === 'success') {
+        response = redirect('/dashboard');
+        const setCookie = verificationResponse.headers?.get("set-cookie");
+        if (setCookie) response.headers.append("Set-Cookie", setCookie);
+    } else {
+        response = redirect('/login?error=email_not_verified');
     }
-
-    const response = await verifyMagicLink(email, code);
-
-    return new Response(JSON.stringify(response), {
-                status: response.status == 'success' ? 200 : 422,
-                headers: {
-                    "Content-Type": "application/json; charset=utf-8",
-                },
-            });
+    // Forward Better Auth's set-cookie header so the session is established
+    return response;
 }
+
