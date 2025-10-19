@@ -8,13 +8,15 @@ export default function UserInfoForm() {
     return (
         <>
             <form
+                method='post'
                 className="space-y-3"
+                action="/api/users/update"
             >
                 <div className="space-y-2">
                     <Label htmlFor="text">First Name</Label>
                     <Input
                         id="firstName"
-                        name="firstName"
+                        name="first_name"
                         type="text"
                         placeholder="First Name"
                         className="h-10"
@@ -27,7 +29,7 @@ export default function UserInfoForm() {
                     <Label htmlFor="text">Last Name</Label>
                     <Input
                         id="lastName"
-                        name="lastName"
+                        name="last_name"
                         type="text"
                         placeholder="Last Name"
                         className="h-10"

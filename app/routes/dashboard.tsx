@@ -1,7 +1,14 @@
-import { Outlet } from "@remix-run/react";
+import { Outlet, redirect, useLoaderData } from "@remix-run/react";
 import { SidebarProvider } from "~/components/ui/sidebar";
 import { AppSidebar } from "~/components/app-sidebar";
 import { Header } from "~/components/header";
+import { getUserFromRequest } from "~/lib/user";
+
+export async function loader({ request}: any) {
+  const { user } = await getUserFromRequest(request);
+  if(!user) return redirect('/');
+  return { };
+}
 
 export default function DashboardLayout() {
   return (
