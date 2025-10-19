@@ -79,11 +79,11 @@ export async function action({ request, params }: ActionFunctionArgs) {
       return new Response(
         JSON.stringify({
           state: "failure",
-          message: "category not found.",
+          message: "Category not found.",
           data: [],
         }),
         {
-          status: 404,
+          status: 404, // Changed from 400 to 404
           headers: {
             "Content-Type": "application/json; charset=utf-8",
           },
@@ -92,8 +92,6 @@ export async function action({ request, params }: ActionFunctionArgs) {
     }
 
     const updateData: any = {};
-
-    // Validate name if provided
     if (body.name !== undefined) {
       if (typeof body.name !== "string" || body.name.trim().length === 0) {
         return new Response(
@@ -113,25 +111,9 @@ export async function action({ request, params }: ActionFunctionArgs) {
       updateData.name = body.name.trim();
     }
 
+    // Fix: Description should be allowed to be empty
     if (body.description !== undefined) {
-      if (
-        typeof body.description !== "string" ||
-        body.description.trim().length === 0
-      ) {
-        return new Response(
-          JSON.stringify({
-            state: "failure",
-            message: "Name is required.",
-            data: [],
-          }),
-          {
-            status: 400,
-            headers: {
-              "Content-Type": "application/json; charset=utf-8",
-            },
-          }
-        );
-      }
+      // Allow empty string for description, just trim it
       updateData.description = body.description.trim();
     }
 
