@@ -30,7 +30,7 @@ export default function LoginPage() {
 
             {/* Privacy Policy */}
             <div className="text-center text-xs text-muted-foreground">
-                By continuing, you agree to ReadAloud’s{" "}
+                By continuing, you agree to PaperTrail’s{" "}
                 <Link to="#" className="underline hover:text-foreground">
                     Terms
                 </Link>{" "}
