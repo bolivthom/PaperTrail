@@ -89,6 +89,12 @@ import { Avatar, AvatarFallback } from "./ui/avatar";
 import { authClient } from "~/auth-client";
 import { useEffect, useState } from "react";
 
+const extractInitials = (firstName: string, lastName: string) => {
+    const firstInitial = firstName ? firstName.charAt(0).toUpperCase() : '';
+    const lastInitial = lastName ? lastName.charAt(0).toUpperCase() : '';
+    return `${firstInitial}${lastInitial}`;
+}
+
 export function Header() {
     const [user, setUser] = useState({});
 
@@ -119,7 +125,7 @@ export function Header() {
                     <NavigationMenuItem className="lg:pl-8">
                         <NavigationMenuTrigger className="h-auto p-0 hover:bg-transparent data-[state=open]:bg-transparent focus:bg-transparent">
                             <Avatar className="transition-all cursor-pointer hover:opacity-80">
-                                <AvatarFallback>JS</AvatarFallback>
+                                <AvatarFallback>{extractInitials(user?.first_name, user?.last_name)}</AvatarFallback>
                             </Avatar>
                         </NavigationMenuTrigger>
                         <NavigationMenuContent className="mr-4">
