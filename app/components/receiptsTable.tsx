@@ -4,6 +4,8 @@ import SortDropdown from "./SortButton";
 import { Searchbar } from "./searchbar";
 import { useSearchParams, Link, useFetcher } from "@remix-run/react";
 import { Button } from "./ui/button";
+
+import { CustomPagination } from "./CustomPagination";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,6 +13,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "./ui/dropdown-menu";
+import { CustomPagination } from "./CustomPagination";
 import { EmptyState } from "./EmptyState";
 import { CustomPagination } from "./customPagination";
 

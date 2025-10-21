@@ -34,6 +34,9 @@ function cleanJsonResponse(rawContent: string): string {
   cleaned = cleaned.replace(/^```\s*/, "");
   cleaned = cleaned.replace(/\s*```$/, "");
 
+  // Remove single-line comments
+  cleaned = cleaned.replace(/\/\/.*$/gm, "");
+
   // Remove any text before the first { and after the last }
   const firstBrace = cleaned.indexOf("{");
   const lastBrace = cleaned.lastIndexOf("}");
@@ -41,6 +44,17 @@ function cleanJsonResponse(rawContent: string): string {
   if (firstBrace !== -1 && lastBrace !== -1) {
     cleaned = cleaned.substring(firstBrace, lastBrace + 1);
   }
+
+  // Remove commas from numbers and fix number formatting
+  cleaned = cleaned.replace(/"(\d{1,3}(,\d{3})*(\.\d+)?)"/g, (match, numberStr) => {
+    // Remove commas from the number string
+    const cleanNumber = numberStr.replace(/,/g, '');
+    return `"${cleanNumber}"`;
+  });
+
+  // Remove trailing commas (common LLM mistake)
+  cleaned = cleaned.replace(/,\s*}/g, '}');
+  cleaned = cleaned.replace(/,\s*]/g, ']');
 
   return cleaned.trim();
 }
@@ -157,6 +171,9 @@ RESPONSE FORMAT (ALWAYS RETURN THIS EXACT STRUCTURE):
   "items": []
 }
 
+and do not involve any comments or notes from you thinking only return raw parsable json
+every response you return must be parsable json
+do not include any characters, statements or prases other than what you have extracted in your response
 If is_receipt is true, populate the fields with actual data.
 If is_receipt is false, keep all fields as empty strings and items as empty array.
 

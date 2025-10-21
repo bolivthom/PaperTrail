@@ -28,14 +28,14 @@ const s3 = new S3Client(s3Config);
 
 // Helper function to upload file to S3 and get URLs
 async function uploadFileToS3(file: File, user: any): Promise<{ fileKey: string; presignedUrl: string; s3Url: string }> {
-  const fileKey = `receipts/${user.id}/${uuidv4()}-${file.name}`;
+  const fileKey = `receipts/${user.id}/${uuidv4()}-${sanitizeFileName(file.name)}`;
   const fileBuffer = await file.arrayBuffer();
 
   console.log("📤 Uploading file to S3:", {
     bucket: process.env.S3_BUCKET,
     key: fileKey,
     size: file.size,
-    fileName: file.name,
+    fileName: sanitizeFileName(file.name),
   });
 
   await s3.send(
@@ -46,7 +46,7 @@ async function uploadFileToS3(file: File, user: any): Promise<{ fileKey: string;
       ContentType: file.type,
       Metadata: {
         userId: user.id,
-        originalName: file.name,
+        originalName: sanitizeFileName(file.name),
       },
     })
   );
@@ -226,6 +226,19 @@ async function processReceiptFile(
     data: receipt,
   };
 }
+
+const sanitizeFileName = (fileName: string): string => {
+  return fileName
+    .normalize('NFD') // Handle unicode characters like non-breaking spaces
+    .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
+    .replace(/[\s\u00A0]/g, '_') // Replace all spaces AND non-breaking spaces with underscores
+    .replace(/[()]/g, '') // Remove parentheses completely
+    .replace(/[:]/g, '-') // Replace colons with hyphens (better for time)
+    .replace(/[^a-zA-Z0-9.\-_]/g, '_') // Replace any other special chars
+    .replace(/_{2,}/g, '_') // Replace multiple underscores with single
+    .replace(/^_|_$/g, '') // Remove leading/trailing underscores
+    .replace(/(\..*)\./g, '$1_'); // Replace dots in filename (not extension) with underscores
+};
 
 // Queue multiple files for background processing
 async function queueMultipleFilesForProcessing(
