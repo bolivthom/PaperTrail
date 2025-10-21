@@ -60,7 +60,7 @@ export default function VerifyPage() {
             </button>
           </div>
 
-          <Link to="/auth/login">
+          <Link to="/">
             <Button variant="outline" className="w-full mt-4">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to login
