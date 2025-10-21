@@ -69,7 +69,7 @@ export default function VerifyErrorPage({
           {/* Help Link */}
           <div className="pt-2 text-center text-sm text-muted-foreground">
             Need help?{" "}
-            <Link to="#" className="text-primary hover:underline font-medium">
+            <Link to="/support" className="text-primary hover:underline font-medium">
               Contact support
             </Link>
           </div>
