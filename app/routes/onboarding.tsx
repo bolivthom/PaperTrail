@@ -1,7 +1,13 @@
 import UserInfoForm from "~/components/user-infoform";
-// import UserAuthForm from "./user-authform";
-// import { Link } from "@remix-run/react";
 import { Card, CardHeader, CardTitle, CardContent } from "~/components/ui/card";
+import { getUserFromRequest } from "~/lib/user";
+import { redirect } from "@remix-run/node";
+
+export async function loader({ request}: any) {
+  const { user } = await getUserFromRequest(request);
+  
+  if(user) return redirect('/dashboard');
+}
 
 export default function OnboardingPage() {
 

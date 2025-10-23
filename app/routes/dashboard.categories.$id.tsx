@@ -1,21 +1,3 @@
-// import type { MetaFunction } from "@remix-run/node";
-
-// export const meta: MetaFunction = () => {
-//   return [
-//     { title: "PaperTrail" },
-//     { name: "description", content: "Welcome to PaperTrail!" },
-//   ];
-// };
-
-// export default function Index() {
-//   return (
-//     <div className="flex h-screen items-center justify-center">
-//         <p>Categories!!</p>
-//     </div>
-//   );
-// }
-
-
 import { Link, Form, useNavigate, useLoaderData } from "@remix-run/react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -133,12 +115,6 @@ export default function EditCategory(props: CategoryEditProps) {
             Back to categories
           </Button>
         </Link>
-      </div>
-
-      {/* Page Title */}
-      <div>
-        <h1 className="text-3xl font-bold mb-2">Category Details</h1>
-        <p className="text-muted-foreground">View and manage category information</p>
       </div>
 
       {/* Category Info Card */}

@@ -69,10 +69,6 @@ export default function ReportsPage({ data }: ReportsPageProps) {
     <div className="space-y-6">
       {/* Period Selector */}
       <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-semibold">Financial Insights</h2>
-          <p className="text-sm text-muted-foreground">Analyze your spending patterns and get personalized recommendations</p>
-        </div>
         <Select value={data.period} onValueChange={handlePeriodChange}>
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Select period" />

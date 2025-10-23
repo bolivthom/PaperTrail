@@ -29,7 +29,7 @@ async function getOrCreateCategory(extractedCategory: string | undefined, userId
   });
 
   if (existingCategory) {
-    console.log(`📂 Using existing category: ${normalizedCategory}`);
+    console.log(`Using existing category: ${normalizedCategory}`);
     return existingCategory.id;
   }
 
@@ -60,15 +60,86 @@ async function getOrCreateCategory(extractedCategory: string | undefined, userId
     },
   });
 
-  console.log(`📂 Created new category: ${finalCategoryName}`);
+  console.log(`ðŸ“‚ Created new category: ${finalCategoryName}`);
   return newCategory.id;
 }
 
 // Process receipt extraction job - FIXED FUNCTION NAME
+// const processReceiptJob = async (job: Job) => {
+//   console.log(`ðŸ” Starting OpenAI extraction for job ${job.id}`);
+//   console.log('ðŸ“‹ Job data:', job.data);
+
+//   const { receiptId, presignedUrl, userId, categoryId, fileName, fileType, s3Url } = job.data;
+
+//   try {
+//     // Update receipt status to processing
+//     await prisma.receipt.update({
+//       where: { id: receiptId },
+//       data: { status: 'processing' }
+//     });
+//     await job.updateProgress(10);
+//     console.log(`Updated receipt ${receiptId} status to processing`);
+
+//     // Extract receipt data using OpenAI - THIS IS THE KEY PART!
+//     console.log(`Calling OpenAI extraction for receipt ${receiptId}`);
+//     let extractedData;
+//     try {
+//       extractedData = await extractImageData(presignedUrl);
+//       console.log(`OpenAI extraction successful for job ${job.id}`, {
+//         merchant: extractedData.merchant_name,
+//         total: extractedData.total,
+//         itemsCount: extractedData.items?.length || 0
+//       });
+
+//       // ADD CURRENCY VALIDATION
+//       if (extractedData.currency && extractedData.currency.toUpperCase() !== 'JMD') {
+//         const errorMessage = `Currency Not Supported: This receipt is in ${extractedData.currency}. We currently only support JMD receipts. Multi-currency support is coming soon!`;
+
+//         // Update receipt with clear error status
+//         await prisma.receipt.update({
+//           where: { id: receiptId },
+//           data: {
+//             status: 'failed',
+//             notes: errorMessage,
+//             company_name: `Rejected - ${extractedData.currency} Currency Not Supported`
+//           }
+//         });
+
+//         throw new Error(errorMessage);
+//       }
+
+//     } catch (error) {
+//       console.error(`âŒ OpenAI extraction failed for job ${job.id}:`, error);
+
+//       if (error instanceof ReceiptExtractionError) {
+//         // Update receipt with extraction failure
+//         await prisma.receipt.update({
+//           where: { id: receiptId },
+//           data: {
+//             status: 'failed',
+//             notes: `Extraction failed: Missing receipt or blurry image`,
+//             company_name: "Extraction Failed - Blurry/Missing"
+//           }
+//         });
+//         throw new Error("Missing receipt or blurry image.");
+//       }
+
+//       // For other errors, mark as failed but keep the minimal data
+//       await prisma.receipt.update({
+//         where: { id: receiptId },
+//         data: {
+//           status: 'failed',
+//           notes: `Extraction failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+//           company_name: "Extraction Failed"
+//         }
+//       });
+//       throw error;
+//     }
+
 const processReceiptJob = async (job: Job) => {
-  console.log(`🔍 Starting OpenAI extraction for job ${job.id}`);
+  console.log(`🔄 Starting OpenAI extraction for job ${job.id}`);
   console.log('📋 Job data:', job.data);
-  
+
   const { receiptId, presignedUrl, userId, categoryId, fileName, fileType, s3Url } = job.data;
 
   try {
@@ -78,9 +149,9 @@ const processReceiptJob = async (job: Job) => {
       data: { status: 'processing' }
     });
     await job.updateProgress(10);
-    console.log(`🔄 Updated receipt ${receiptId} status to processing`);
+    console.log(`🔧 Updated receipt ${receiptId} status to processing`);
 
-    // Extract receipt data using OpenAI - THIS IS THE KEY PART!
+    // Extract receipt data using OpenAI
     console.log(`🤖 Calling OpenAI extraction for receipt ${receiptId}`);
     let extractedData;
     try {
@@ -88,16 +159,40 @@ const processReceiptJob = async (job: Job) => {
       console.log(`✅ OpenAI extraction successful for job ${job.id}`, {
         merchant: extractedData.merchant_name,
         total: extractedData.total,
-        itemsCount: extractedData.items?.length || 0
+        itemsCount: extractedData.items?.length || 0,
+        currency: extractedData.currency
       });
+
+      // ADD CURRENCY VALIDATION HERE - RIGHT AFTER EXTRACTION
+      if (extractedData.currency && extractedData.currency.toUpperCase() !== 'JMD') {
+        const errorMessage = `Currency Not Supported: This receipt is in ${extractedData.currency}. We currently only support JMD receipts. Multi-currency support is coming soon!`;
+
+        // Update receipt with clear error status
+        await prisma.receipt.update({
+          where: { id: receiptId },
+          data: {
+            status: 'failed',
+            notes: errorMessage,
+            company_name: `Rejected - ${extractedData.currency} Not Supported`
+          }
+        });
+
+        throw new Error(errorMessage);
+      }
+
     } catch (error) {
       console.error(`❌ OpenAI extraction failed for job ${job.id}:`, error);
+
+      // Handle currency error
+      if (error instanceof Error && error.message.includes("Currency Not Supported")) {
+        throw error; // Already updated the receipt above, just throw
+      }
 
       if (error instanceof ReceiptExtractionError) {
         // Update receipt with extraction failure
         await prisma.receipt.update({
           where: { id: receiptId },
-          data: { 
+          data: {
             status: 'failed',
             notes: `Extraction failed: Missing receipt or blurry image`,
             company_name: "Extraction Failed - Blurry/Missing"
@@ -109,7 +204,7 @@ const processReceiptJob = async (job: Job) => {
       // For other errors, mark as failed but keep the minimal data
       await prisma.receipt.update({
         where: { id: receiptId },
-        data: { 
+        data: {
           status: 'failed',
           notes: `Extraction failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
           company_name: "Extraction Failed"
@@ -121,23 +216,45 @@ const processReceiptJob = async (job: Job) => {
     await job.updateProgress(60);
     console.log(`✅ OpenAI extraction completed for job ${job.id}`);
 
+    await job.updateProgress(60);
+    console.log(`âœ… OpenAI extraction completed for job ${job.id}`);
+
     // Handle category
     const finalCategoryId = await getOrCreateCategory(extractedData.category, userId, categoryId);
     await job.updateProgress(70);
 
     // Parse and validate extracted data
-    const purchaseDate = extractedData.purchase_date
-      ? new Date(extractedData.purchase_date)
-      : new Date();
+    let purchaseDate: Date;
+    if (extractedData.purchase_date) {
+      const parsedDate = new Date(extractedData.purchase_date);
+      // Check if date is valid
+      if (isNaN(parsedDate.getTime())) {
+        console.warn(`Invalid date string received: "${extractedData.purchase_date}". Using current date.`);
+        purchaseDate = new Date();
+      } else {
+        purchaseDate = parsedDate;
+      }
+    } else {
+      purchaseDate = new Date();
+    }
 
-    const subTotal = parseFloat(extractedData.sub_total) || 0;
-    const taxAmount = parseFloat(extractedData.tax_total) || 0;
+    // Helper function to parse currency strings
+    const parseCurrencyString = (value: string | undefined): number => {
+      if (!value) return 0;
+      // Remove currency symbols, letters, and commas, then parse
+      const cleaned = value.replace(/[A-Z\s,]/gi, '').trim();
+      const parsed = parseFloat(cleaned);
+      return isNaN(parsed) ? 0 : parsed;
+    };
+
+    const subTotal = parseCurrencyString(extractedData.sub_total);
+    const taxAmount = parseCurrencyString(extractedData.tax_total);
     const totalAmount =
-      parseFloat(extractedData.total) ||
-      parseFloat(extractedData.totalAmount) ||
+      parseCurrencyString(extractedData.total) ||
+      parseCurrencyString(extractedData.totalAmount) ||
       0;
 
-    console.log(`📊 Parsed receipt data for job ${job.id}:`, {
+    console.log(`ðŸ“Š Parsed receipt data for job ${job.id}:`, {
       merchant: extractedData.merchant_name,
       total: totalAmount,
       date: purchaseDate,
@@ -169,7 +286,7 @@ const processReceiptJob = async (job: Job) => {
 
     await job.updateProgress(100);
 
-    console.log(`✅ Receipt ${receiptId} fully processed and updated in database`);
+    console.log(`âœ… Receipt ${receiptId} fully processed and updated in database`);
 
     return {
       status: 'success',
@@ -182,12 +299,12 @@ const processReceiptJob = async (job: Job) => {
       }
     };
   } catch (error) {
-    console.error(`💥 Error processing receipt ${receiptId}:`, error);
+    console.error(`ðŸ’¥ Error processing receipt ${receiptId}:`, error);
 
     // Update receipt status to failed
     await prisma.receipt.update({
       where: { id: receiptId },
-      data: { 
+      data: {
         status: 'failed',
         notes: `Processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`
       }
@@ -208,43 +325,43 @@ const worker = new Worker('receipts', processReceiptJob, {
 });
 
 worker.on('completed', (job, result) => {
-  console.log(`✅ Job ${job.id} has completed! Result:`, result);
+  console.log(`âœ… Job ${job.id} has completed! Result:`, result);
 });
 
 worker.on('failed', (job, err) => {
-  console.log(`❌ Job ${job?.id} has failed with:`, err.message);
+  console.log(`âŒ Job ${job?.id} has failed with:`, err.message);
 });
 
 worker.on('error', (err) => {
-  console.log(`🚨 Worker error:`, err);
+  console.log(`ðŸš¨ Worker error:`, err);
 });
 
 worker.on('ready', () => {
-  console.log('🚀 Receipt worker is ready and waiting for jobs...');
+  console.log('ðŸš€ Receipt worker is ready and waiting for jobs...');
 });
 
 worker.on('stalled', (jobId) => {
-  console.log(`⚠️ Job ${jobId} has stalled`);
+  console.log(`âš ï¸ Job ${jobId} has stalled`);
 });
 
 worker.on('progress', (job, progress) => {
-  console.log(`📊 Job ${job.id} progress: ${progress}%`);
+  console.log(`ðŸ“Š Job ${job.id} progress: ${progress}%`);
 });
 
 worker.on('active', (job) => {
-  console.log(`🔧 Job ${job.id} is now active and being processed`);
+  console.log(`ðŸ”§ Job ${job.id} is now active and being processed`);
 });
 
 // Graceful shutdown handling
 const gracefulShutdown = async (signal: string) => {
-  console.log(`\n🛑 Received ${signal}. Starting graceful shutdown...`);
-  
+  console.log(`\nðŸ›‘ Received ${signal}. Starting graceful shutdown...`);
+
   try {
     await worker.close();
-    console.log('✅ Worker closed gracefully');
+    console.log('âœ… Worker closed gracefully');
     process.exit(0);
   } catch (error) {
-    console.error('❌ Error during shutdown:', error);
+    console.error('âŒ Error during shutdown:', error);
     process.exit(1);
   }
 };
@@ -255,12 +372,12 @@ process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (error) => {
-  console.error('🚨 Uncaught Exception:', error);
+  console.error('ðŸš¨ Uncaught Exception:', error);
   gracefulShutdown('uncaughtException');
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('🚨 Unhandled Rejection at:', promise, 'reason:', reason);
+  console.error('ðŸš¨ Unhandled Rejection at:', promise, 'reason:', reason);
   gracefulShutdown('unhandledRejection');
 });
 
