@@ -1,12 +1,8 @@
 import { json, LoaderFunctionArgs, redirect } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
-import { AppSidebar } from "~/components/app-sidebar";
-import { SidebarProvider } from "~/components/ui/sidebar";
 import { getUserFromRequest } from "~/lib/user";
 import prisma from "~/prisma.server";
-import { Header } from "~/components/header";
 import ReceiptsTable from "~/components/receiptsTable";
-// import ReceiptsTable from "~/components/receiptsTable";
 
 
 // In dashboard.receipts.tsx loader
@@ -43,39 +39,6 @@ export async function loader({ request }: LoaderFunctionArgs) {
   if (categoryFilters.length > 0 && !categoryFilters.includes('all')) {
     whereClause.category_id = { in: categoryFilters };
   }
-
-  // ... rest of loader code
-// }
-
-// export async function loader({ request }: LoaderFunctionArgs) {
-//   const { user } = await getUserFromRequest(request);
-  
-//   if (!user) return redirect('/auth/login');
-
-//   const url = new URL(request.url);
-//   const searchQuery = url.searchParams.get('q') || '';
-//   const categoryFilter = url.searchParams.get('category') || 'all';
-//   const sortBy = url.searchParams.get('sort') || 'date-desc';
-//   const currentPage = Number(url.searchParams.get('page')) || 1;
-//   const ITEMS_PER_PAGE = 10;
-
-//   // Build where clause
-//   const whereClause: any = {
-//     user_id: user.id,
-//   };
-
-//   // Add search filter
-//   if (searchQuery) {
-//     whereClause.OR = [
-//       { company_name: { contains: searchQuery, mode: 'insensitive' } },
-//       { notes: { contains: searchQuery, mode: 'insensitive' } },
-//     ];
-//   }
-
-//   // Add category filter
-//   if (categoryFilter && categoryFilter !== 'all') {
-//     whereClause.category_id = categoryFilter;
-//   }
 
   // Build orderBy
   let orderBy: any = {};
@@ -155,8 +118,7 @@ export default function ReceiptsPage() {
   const { receipts, categories, totalCount, currentPage, itemsPerPage } = useLoaderData<typeof loader>();
 
   return (
-    <SidebarProvider>
-      <div className="min-h-screen w-full bg-background">
+      <div>
           <ReceiptsTable 
             receipts={receipts}
             categories={categories}
@@ -165,6 +127,5 @@ export default function ReceiptsPage() {
             itemsPerPage={itemsPerPage}
           />
       </div>
-    </SidebarProvider>
   );
 }
