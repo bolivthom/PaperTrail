@@ -11,7 +11,7 @@ import {
 } from "react";
 import { Card, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
-import { Notification } from "./notification";
+import { Notification } from "~/components/notification";
 
 export default function FileUploader() {
   const maxSizeMB = 5;
