@@ -9,6 +9,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import NotFound from "~/components/notFound";
 import { getUserFromRequest } from "~/lib/user";
 import prisma from "~/prisma.server";
+import { LoaderFunctionArgs } from "@remix-run/node";
 
 // Types
 export interface CategoryDetails {
@@ -25,7 +26,7 @@ interface CategoryEditProps {
   backUrl?: string;
 }
 
-export async function loader({ request,params }: LoaderFunctionArgs) {
+export async function loader({ request, params }: LoaderFunctionArgs) {
   const { id } = params;
 
   if (!id) {
@@ -43,11 +44,11 @@ export async function loader({ request,params }: LoaderFunctionArgs) {
     select: {
         id: true,
         name: true,
-          _count: {
-              select: { 
-                  receipts: true 
-              }
-          }
+        _count: {
+            select: { 
+                receipts: true 
+            }
+        }
     }
   });
 
@@ -55,28 +56,33 @@ export async function loader({ request,params }: LoaderFunctionArgs) {
     throw new Error("Category not found");
   }
 
-    const categoryTotals = await prisma.receipt.groupBy({
-        by: ['category_id'],
-        _sum: {
-            total_amount: true
-        },
-        where: {
-            user_id: user.id,
-            category_id: category.id
-        }
-    });
+  const categoryTotals = await prisma.receipt.groupBy({
+    by: ['category_id'],
+    _sum: {
+      total_amount: true
+    },
+    where: {
+      user_id: user.id,
+      category_id: category.id
+    }
+  });
 
-    const totalsMap = new Map(
-        categoryTotals.map(item => [
-            item.category_id, 
-            Number(item._sum.total_amount || 0)
-        ])
-    );
+  const totalsMap = new Map(
+    categoryTotals.map(item => [
+      item.category_id, 
+      Number(item._sum.total_amount || 0)
+    ])
+  );
 
-    category.receiptsCount = category._count.receipts;
-    category.totalAmount = (totalsMap.get(category.id) || 0).toFixed(2);
+  // Create a new object with the additional properties
+  const categoryWithDetails: CategoryDetails = {
+    id: category.id,
+    name: category.name,
+    receiptsCount: category._count.receipts,
+    totalAmount: (totalsMap.get(category.id) || 0).toFixed(2)
+  };
   
-  return { category };
+  return { category: categoryWithDetails };
 }
 
 
@@ -145,88 +151,6 @@ export default function EditCategory(props: CategoryEditProps) {
           </div>
         </CardContent>
       </Card>
-
-      {/* Edit Form */}
-      {/* <Card className="border border-border shadow-sm rounded-2xl bg-card">
-        <CardHeader>
-          <CardTitle>Edit Category</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Form method="post" className="space-y-6">
-            <input type="hidden" name="id" value={category.id} />
-            <input type="hidden" name="_action" value="update" />
-            
-            <div className="space-y-2">
-              <Label htmlFor="name" className="text-sm font-medium">
-                Category Name
-              </Label>
-              <Input
-                id="name"
-                name="name"
-                defaultValue={category.name}
-                placeholder="Enter category name"
-                className="bg-background border-border"
-                required
-              />
-            </div>
-
-            <div className="flex gap-3">
-              <Button type="submit" className="gap-2">
-                <Save className="w-4 h-4" />
-                Save Changes
-              </Button>
-              <Link to={backUrl}>
-                <Button type="button" variant="outline">
-                  Cancel
-                </Button>
-              </Link>
-            </div>
-          </Form>
-        </CardContent>
-      </Card> */}
-
-      {/* Danger Zone */}
-      {/* <Card className="border-destructive/50 border border-border shadow-sm rounded-2xl bg-card">
-        <CardHeader>
-          <CardTitle className="text-destructive">Danger Zone</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium mb-1">Delete Category</p>
-              <p className="text-sm text-muted-foreground">
-                This action cannot be undone. All receipts will be uncategorized.
-              </p>
-            </div>
-            
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive" className="gap-2">
-                  <Trash2 className="w-4 h-4" />
-                  Delete
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This will permanently delete the category "{category.name}" and uncategorize {category.receiptsCount} {category.receiptsCount === 1 ? 'receipt' : 'receipts'}. This action cannot be undone.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={handleDelete}
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  >
-                    Delete Category
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </div>
-        </CardContent>
-      </Card> */}
     </div>
   );
 }

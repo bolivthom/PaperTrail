@@ -7,6 +7,26 @@ import { getUserFromRequest } from "~/lib/user";
 import prisma from "~/prisma.server";
 import ReportsPage from "~/components/reportsPage";
 
+// Define types for insights
+type InsightType = 'success' | 'info' | 'warning' | 'tip';
+type InsightIcon = 'TrendingUp' | 'TrendingDown' | 'PieChart' | 'Lightbulb' | 'Store';
+
+interface Insight {
+  type: InsightType;
+  title: string;
+  description: string;
+  icon: InsightIcon;
+}
+
+interface GenerateInsightsData {
+  categorySpending: Record<string, number>;
+  merchantSpending: Record<string, { total: number; count: number }>;
+  totalSpending: number;
+  spendingChange: number;
+  receipts: any[];
+  period: number;
+}
+
 export async function loader({ request }: LoaderFunctionArgs) {
   const { user } = await getUserFromRequest(request);
 
@@ -121,8 +141,8 @@ export async function loader({ request }: LoaderFunctionArgs) {
   });
 }
 
-function generateInsights(data: any) {
-  const insights = [];
+function generateInsights(data: GenerateInsightsData): Insight[] {
+  const insights: Insight[] = [];
 
   // Spending increase/decrease
   if (Math.abs(data.spendingChange) > 10) {
@@ -145,10 +165,11 @@ function generateInsights(data: any) {
 
   // Category-specific insights
   const sortedCategories = Object.entries(data.categorySpending)
-    .sort(([, a]: any, [, b]: any) => b - a);
+    .sort(([, a], [, b]) => (b as number) - (a as number));
 
   if (sortedCategories.length > 0) {
-    const [topCategory, topAmount] = sortedCategories[0];
+    const [topCategory, topAmountUnknown] = sortedCategories[0];
+    const topAmount = topAmountUnknown as number;
     const percentage = (topAmount / data.totalSpending) * 100;
 
     if (percentage > 40) {
@@ -174,8 +195,10 @@ function generateInsights(data: any) {
   }
 
   // Frequent merchant insight
-  const topMerchant = Object.entries(data.merchantSpending)
-    .sort(([, a]: any, [, b]: any) => b.count - a.count)[0];
+  const merchantEntries = Object.entries(data.merchantSpending)
+    .sort(([, a], [, b]) => b.count - a.count);
+  
+  const topMerchant = merchantEntries[0];
 
   if (topMerchant && topMerchant[1].count > 5) {
     insights.push({

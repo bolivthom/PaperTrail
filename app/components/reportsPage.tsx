@@ -161,7 +161,11 @@ export default function ReportsPage({ data }: ReportsPageProps) {
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  label={(props: any) => {
+                    const { name, percent } = props;
+                    if (!name || percent === undefined) return '';
+                    return `${name} ${(percent * 100).toFixed(0)}%`;
+                  }}
                   outerRadius={80}
                   fill="#8884d8"
                   dataKey="value"
@@ -170,7 +174,7 @@ export default function ReportsPage({ data }: ReportsPageProps) {
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value: any) => `JMD $${value.toFixed(2)}`} />
+                <Tooltip formatter={(value: number) => `JMD $${value.toFixed(2)}`} />
               </RePieChart>
             </ResponsiveContainer>
           </CardContent>
@@ -188,7 +192,7 @@ export default function ReportsPage({ data }: ReportsPageProps) {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" />
                 <YAxis />
-                <Tooltip formatter={(value: any) => `JMD $${value.toFixed(2)}`} />
+                <Tooltip formatter={(value: number) => `JMD $${value.toFixed(2)}`} />
                 <Line type="monotone" dataKey="amount" stroke="#8B5CF6" strokeWidth={2} />
               </LineChart>
             </ResponsiveContainer>
