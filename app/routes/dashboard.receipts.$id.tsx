@@ -61,26 +61,26 @@ export function ReceiptForm({ receipt, categories }: ReceiptFormProps) {
   return (
     <Form method="post" className="space-y-6">
       <input type="hidden" name="id" value={receipt.id} />
-      
+
       <Card className="border-border">
         <CardContent className="pt-6 space-y-6">
 
-    <div className="space-y-2">
-      <Label htmlFor={'category_id'} className="text-sm font-medium">
-        Category
-      </Label>
-          <Select name='category_id' defaultValue={`${receipt.category?.id}`}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Select category" />
-            </SelectTrigger>
-            <SelectContent>
-              {categories.map((category) => (
-                <SelectItem key={category.id} value={`${category.id}`}>
-                  {category.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="space-y-2">
+            <Label htmlFor={'category_id'} className="text-sm font-medium">
+              Category
+            </Label>
+            <Select name='category_id' defaultValue={`${receipt.category?.id}`}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Select category" />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map((category) => (
+                  <SelectItem key={category.id} value={`${category.id}`}>
+                    {category.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <ReceiptFormField
             label="Merchant"
@@ -128,7 +128,7 @@ export function ReceiptImage({ imageUrl, altText = "Receipt" }: ReceiptImageProp
     <div className="space-y-2">
       <h3 className="text-xl font-semibold">Receipt image</h3>
       <p className="text-sm text-muted-foreground">Original scanned document</p>
-      
+
       <Card className="border-border overflow-hidden">
         <CardContent className="p-0">
           {imageUrl ? (
@@ -139,7 +139,7 @@ export function ReceiptImage({ imageUrl, altText = "Receipt" }: ReceiptImageProp
             />
           ) : (
             <div className="flex items-center justify-center h-64 bg-muted">
-              <NoImageAvailable/>
+              <NoImageAvailable />
             </div>
           )}
         </CardContent>
@@ -154,7 +154,7 @@ interface ReceiptDetailsProps {
   backUrl?: string;
 }
 
-export async function loader({ request,params }: LoaderFunctionArgs) {
+export async function loader({ request, params }: LoaderFunctionArgs) {
   const { id } = params;
 
   if (!id) {
@@ -162,12 +162,12 @@ export async function loader({ request,params }: LoaderFunctionArgs) {
   }
 
   const { user } = await getUserFromRequest(request);
-  
+
   if (!user) {
     throw new Error("User not authenticated");
   }
 
-  const receipt = await prisma.receipt.findFirst({ 
+  const receipt = await prisma.receipt.findFirst({
     where: { id, user_id: user.id },
     include: { category: true }
   });
@@ -197,12 +197,12 @@ export async function action({ request, params }: ActionFunctionArgs) {
   }
 
   const { user } = await getUserFromRequest(request);
-  
+
   if (!user) {
     return redirect(`/`)
   }
 
-  const receipt = await prisma.receipt.findFirst({ 
+  const receipt = await prisma.receipt.findFirst({
     where: { id, user_id: user.id },
     include: { category: true }
   });
@@ -213,41 +213,41 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
   const formData = await request.formData();
 
-  const { 
+  const {
     category_id,
     company_name,
     total_amount,
     purchase_date
   } = Object.fromEntries(formData) as Record<string, string>
-  
+
   const updatedReceipt = await prisma.receipt.update({
     where: { id: receipt.id },
     data: {
-      category: { connect: { id: category_id }},
+      category: { connect: { id: category_id } },
       company_name,
       total_amount,
       purchase_date
     }
-  }).then((resp)=> resp).catch((err)=>{
+  }).then((resp) => resp).catch((err) => {
     console.log('ERR', err)
-  } );
+  });
 
   if (updatedReceipt?.id) {
     return redirect('/dashboard/receipts')
   }
-   
+
   return redirect(`/dashboard/receipts/${id}?error=Failed to Update`)
 }
 
 
 export default function ReceiptDetails() {
 
-  const { receipt, categories } = useLoaderData<typeof loader>(); 
+  const { receipt, categories } = useLoaderData<typeof loader>();
   // Guard clause for undefined receipt
   if (!receipt) {
     return (
       <div className="">
-       <NotFound icon={FileQuestion} title={"Receipt not found"} description={"The receipt you're looking for doesn't exist or may have been deleted."}/>
+        <NotFound icon={FileQuestion} title={"Receipt not found"} description={"The receipt you're looking for doesn't exist or may have been deleted."} />
       </div>
     );
   }
@@ -261,12 +261,6 @@ export default function ReceiptDetails() {
           Back to receipts
         </Button>
       </Link>
-
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold mb-2">Receipt Details</h1>
-        <p className="text-muted-foreground">View and manage receipt information</p>
-      </div>
 
       {/* Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

@@ -102,10 +102,23 @@ async function extractImageData(s3Url: string): Promise<ReceiptDataExtract> {
       console.error("Failed to parse OpenAI response:", parseError);
       throw new Error("Failed to parse receipt data from AI response");
     }
-    // Validate required fields
-    if (!extracted.merchant_name && !extracted.total) {
-      // throw new Error("Insufficient data extracted from receipt");
+    
+    // Validate is_receipt field exists
+    if (typeof extracted.is_receipt !== 'boolean') {
+      console.error("Missing or invalid is_receipt field in response:", extracted);
       throw new ReceiptExtractionError("Missing or invalid is_receipt field in AI response");
+    }
+
+    // If no receipt detected, throw appropriate error
+    if (extracted.is_receipt === false) {
+      console.log("No receipt detected in image or receipt is illegible");
+      throw new ReceiptExtractionError("No receipt detected or receipt is too blurry/illegible");
+    }
+
+    // Validate required fields for valid receipts
+    if (!extracted.merchant_name && !extracted.total) {
+      console.error("Insufficient data extracted from receipt:", extracted);
+      throw new ReceiptExtractionError("Insufficient data extracted from receipt");
     }
 
     return extracted;
@@ -123,19 +136,19 @@ IF a receipt is detected and readable, extract the following information in JSON
 
 FIELDS TO EXTRACT:
 - is_receipt: boolean (true if receipt is detected and readable, false otherwise)
-- totalAmount: The total amount paid.
+- totalAmount: The total amount paid (numeric value only, e.g., "3100.00" not "JMD 3,100.00").
 - merchant_name: The name of the merchant.
 - merchant_address: The address of the merchant.
-- purchase_date: The date of purchase.
-- sub_total: The subtotal amount before tax.
-- tax_total: The total tax amount.
-- total: The final total amount.
-- currency: The currency used in the transaction.
+- purchase_date: The date of purchase in ISO 8601 format (YYYY-MM-DD). If the receipt shows "17/10/2025", return "2025-10-17". If date is ambiguous or unclear, use current date.
+- sub_total: The subtotal amount before tax (numeric value only, e.g., "3100.00").
+- tax_total: The total tax amount (numeric value only, e.g., "465.00").
+- total: The final total amount (numeric value only, e.g., "3565.00").
+- currency: The currency code (e.g., "JMD", "USD").
 - category: The expense category. Must be one of: Retail, Dining, Travel, Services, Financial, Entertainment, Utilities, Returns, Business, Government, Other
 - items: A list of items purchased, each with:
   - name: The name of the item.
-  - quantity: The quantity purchased.
-  - price: The price of the item.
+  - quantity: The quantity purchased (numeric value or empty string).
+  - price: The price of the item (numeric value only, e.g., "2000.00").
 
 CATEGORY GUIDELINES:
 - Retail: General merchandise stores, clothing, electronics, supermarkets, pharmacies

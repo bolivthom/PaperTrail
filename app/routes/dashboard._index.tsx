@@ -7,7 +7,6 @@ import { Card, CardContent } from "~/components/ui/card";
 import { SidebarProvider } from "~/components/ui/sidebar";
 import { getUserFromRequest } from "~/lib/user";
 import prisma from "~/prisma.server";
-import { Header } from "~/components/header";
 
 export async function loader({ request}: any) {
   const { user } = await getUserFromRequest(request);
@@ -67,8 +66,7 @@ export default function Dashboard() {
         <AppSidebar />
 
         {/* Main Content */}
-        <main className="p-4 lg:p-8">
-          {/* <Header /> */}
+        <main>
 
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">

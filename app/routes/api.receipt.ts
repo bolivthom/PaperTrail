@@ -18,9 +18,9 @@ const s3Config = {
   credentials:
     process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY
       ? {
-          accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-          secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-        }
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+      }
       : undefined,
 };
 
@@ -31,7 +31,7 @@ async function uploadFileToS3(file: File, user: any): Promise<{ fileKey: string;
   const fileKey = `receipts/${user.id}/${uuidv4()}-${sanitizeFileName(file.name)}`;
   const fileBuffer = await file.arrayBuffer();
 
-  console.log("📤 Uploading file to S3:", {
+  console.log("Uploading file to S3:", {
     bucket: process.env.S3_BUCKET,
     key: fileKey,
     size: file.size,
@@ -64,11 +64,10 @@ async function uploadFileToS3(file: File, user: any): Promise<{ fileKey: string;
   // Generate S3 URL
   const s3Url = process.env.S3_PUBLIC_BASE
     ? `${process.env.S3_PUBLIC_BASE}/${fileKey}`
-    : `https://${process.env.S3_BUCKET}.s3.${
-        process.env.AWS_REGION || "us-east-1"
-      }.amazonaws.com/${fileKey}`;
+    : `https://${process.env.S3_BUCKET}.s3.${process.env.AWS_REGION || "us-east-1"
+    }.amazonaws.com/${fileKey}`;
 
-  console.log("✅ File uploaded to S3:", s3Url);
+  console.log("File uploaded to S3:", s3Url);
 
   return { fileKey, presignedUrl, s3Url };
 }
@@ -134,13 +133,65 @@ async function getOrCreateCategory(extractedCategory: string | undefined, user: 
 }
 
 // Real-time processing for single files
+// async function processReceiptFile(
+//   file: File,
+//   user: any,
+//   category_id: string | null
+// ): Promise<any> {
+//   console.log("Starting REAL-TIME processing for single file:", file.name);
+
+//   // 1. Upload file to S3
+//   const { fileKey, presignedUrl, s3Url } = await uploadFileToS3(file, user);
+
+//   // 2. Extract receipt data using OpenAI
+//   let extractedData: ReceiptDataExtract;
+//   try {
+//     extractedData = await extractImageData(presignedUrl);
+//     console.log("OpenAI extraction successful for single file:", file.name);
+
+//     // BLOCKS RECEIPTS WITH CURRENCIES NOT JMD
+//     if (extractedData.currency && extractedData.currency.toUpperCase() !== 'JMD') {
+//       throw new Error(`Only JMD currency receipts are currently supported. This receipt appears to be in ${extractedData.currency}. Multi-currency support coming soon!`);
+//     }
+
+//   } catch (error) {
+//     console.error("OpenAI extraction failed for single file:", file.name, error);
+
+//     if (error instanceof ReceiptExtractionError) {
+//       throw new Error("Missing receipt or blurry image.");
+//     }
+
+//     // Create receipt with just the file info if extraction fails
+//     const receipt = await prisma.receipt.create({
+//       data: {
+//         user_id: user.id,
+//         company_name: "Unknown - Extraction Failed",
+//         purchase_date: new Date(),
+//         sub_total: 0,
+//         tax_amount: 0,
+//         total_amount: 0,
+//         currency: "JMD",
+//         image_filename: file.name,
+//         image_mime_type: file.type,
+//         image_s3_url: s3Url,
+//         category_id: category_id || null,
+//       },
+//     });
+
+//     return {
+//       state: "success",
+//       message: "Unable to parse; Receipt uploaded to S3 and was saved with minimal data",
+//       data: receipt,
+//     };
+//   }
+
 async function processReceiptFile(
   file: File,
   user: any,
   category_id: string | null
 ): Promise<any> {
   console.log("🔄 Starting REAL-TIME processing for single file:", file.name);
-  
+
   // 1. Upload file to S3
   const { fileKey, presignedUrl, s3Url } = await uploadFileToS3(file, user);
 
@@ -149,8 +200,19 @@ async function processReceiptFile(
   try {
     extractedData = await extractImageData(presignedUrl);
     console.log("✅ OpenAI extraction successful for single file:", file.name);
+
+    // ADD CURRENCY VALIDATION HERE - BEFORE CREATING RECEIPT
+    if (extractedData.currency && extractedData.currency.toUpperCase() !== 'JMD') {
+      throw new Error(`Currency Not Supported: This receipt is in ${extractedData.currency}. We currently only support JMD receipts. Multi-currency support is coming soon!`);
+    }
+
   } catch (error) {
     console.error("❌ OpenAI extraction failed for single file:", file.name, error);
+
+    // Handle currency error specifically
+    if (error instanceof Error && error.message.includes("Currency Not Supported")) {
+      throw error; // Re-throw to show the currency error to user
+    }
 
     if (error instanceof ReceiptExtractionError) {
       throw new Error("Missing receipt or blurry image.");
@@ -184,15 +246,34 @@ async function processReceiptFile(
   const categoryId = await getOrCreateCategory(extractedData.category, user, category_id);
 
   // 4. Parse and validate extracted data
-  const purchaseDate = extractedData.purchase_date
-    ? new Date(extractedData.purchase_date)
-    : new Date();
+  let purchaseDate: Date;
+  if (extractedData.purchase_date) {
+    const parsedDate = new Date(extractedData.purchase_date);
+    // Check if date is valid
+    if (isNaN(parsedDate.getTime())) {
+      console.warn(`Invalid date string received: "${extractedData.purchase_date}". Using current date.`);
+      purchaseDate = new Date();
+    } else {
+      purchaseDate = parsedDate;
+    }
+  } else {
+    purchaseDate = new Date();
+  }
 
-  const subTotal = parseFloat(extractedData.sub_total) || 0;
-  const taxAmount = parseFloat(extractedData.tax_total) || 0;
+  // Helper function to parse currency strings
+  const parseCurrencyString = (value: string | undefined): number => {
+    if (!value) return 0;
+    // Remove currency symbols, letters, and commas, then parse
+    const cleaned = value.replace(/[A-Z\s,]/gi, '').trim();
+    const parsed = parseFloat(cleaned);
+    return isNaN(parsed) ? 0 : parsed;
+  };
+
+  const subTotal = parseCurrencyString(extractedData.sub_total);
+  const taxAmount = parseCurrencyString(extractedData.tax_total);
   const totalAmount =
-    parseFloat(extractedData.total) ||
-    parseFloat(extractedData.totalAmount) ||
+    parseCurrencyString(extractedData.total) ||
+    parseCurrencyString(extractedData.totalAmount) ||
     0;
 
   // 5. Create receipt in database WITH S3 URL
@@ -218,7 +299,7 @@ async function processReceiptFile(
     },
   });
 
-  console.log("✅ Receipt created in database (real-time):", receipt.id);
+  console.log("âœ… Receipt created in database (real-time):", receipt.id);
 
   return {
     state: "success",
@@ -246,18 +327,18 @@ async function queueMultipleFilesForProcessing(
   user: any,
   category_id: string | null
 ): Promise<{ successCount: number; failedCount: number }> {
-  console.log(`🚀 Starting BACKGROUND processing for ${files.length} files:`, files.map(f => f.name));
-  
+  console.log(`ðŸš€ Starting BACKGROUND processing for ${files.length} files:`, files.map(f => f.name));
+
   let successCount = 0;
   let failedCount = 0;
-  
+
   for (const [index, file] of files.entries()) {
     try {
-      console.log(`📦 Processing file ${index + 1}/${files.length}: ${file.name}`);
-      
+      console.log(`ðŸ“¦ Processing file ${index + 1}/${files.length}: ${file.name}`);
+
       // Upload file to S3
       const { fileKey, presignedUrl, s3Url } = await uploadFileToS3(file, user);
-      
+
       // Create minimal receipt record in "processing" state
       const receipt = await prisma.receipt.create({
         data: {
@@ -276,7 +357,7 @@ async function queueMultipleFilesForProcessing(
         },
       });
 
-      console.log(`📝 Created minimal receipt record: ${receipt.id} for file: ${file.name}`);
+      console.log(`ðŸ“ Created minimal receipt record: ${receipt.id} for file: ${file.name}`);
 
       // Add job to queue with all necessary data - DO NOT AWAIT this!
       receiptQueue.add(
@@ -300,20 +381,20 @@ async function queueMultipleFilesForProcessing(
           removeOnFail: 20,
         }
       ).then((job) => {
-        console.log(`✅ Successfully queued job ${job.id} for receipt ${receipt.id} (file: ${file.name})`);
+        console.log(`âœ… Successfully queued job ${job.id} for receipt ${receipt.id} (file: ${file.name})`);
       }).catch((error) => {
-        console.error(`❌ Failed to queue job for file ${file.name}:`, error);
+        console.error(`âŒ Failed to queue job for file ${file.name}:`, error);
       });
 
       successCount++;
-      
+
     } catch (error) {
-      console.error(`❌ Failed to process file ${file.name}:`, error);
+      console.error(`âŒ Failed to process file ${file.name}:`, error);
       failedCount++;
     }
   }
 
-  console.log(`🎯 Background processing initiated: ${successCount} successful, ${failedCount} failed`);
+  console.log(`ðŸŽ¯ Background processing initiated: ${successCount} successful, ${failedCount} failed`);
   return { successCount, failedCount };
 }
 
@@ -403,13 +484,13 @@ export async function action({ request }: ActionFunctionArgs) {
 
   try {
     const formData = await request.formData();
-    
+
     // Get ALL files with field name 'image' (Postman sends multiple with same name)
     const allImageFiles = formData.getAll("image") as File[];
-    
+
     const category_id = formData.get("category_id") as string | null;
 
-    console.log("📨 Received upload request:", {
+    console.log("ðŸ“¨ Received upload request:", {
       totalFilesReceived: allImageFiles.length,
       fileNames: allImageFiles.map(f => f.name),
       category_id,
@@ -418,7 +499,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
     // Check if S3 is properly configured
     if (!process.env.S3_BUCKET) {
-      console.error("❌ S3_BUCKET environment variable is missing");
+      console.error("âŒ S3_BUCKET environment variable is missing");
       return new Response(
         JSON.stringify({
           state: "failure",
@@ -438,7 +519,7 @@ export async function action({ request }: ActionFunctionArgs) {
     const validFiles = allImageFiles.filter(file => file && file.size > 0);
 
     if (validFiles.length === 0) {
-      console.log("❌ No valid files found");
+      console.log("âŒ No valid files found");
       return new Response(
         JSON.stringify({
           state: "failure",
@@ -463,15 +544,15 @@ export async function action({ request }: ActionFunctionArgs) {
       if (validationError) {
         const errorMessage = `File ${file.name}: ${JSON.parse((await validationError.text())).message}`;
         validationErrors.push(errorMessage);
-        console.log(`❌ File validation failed: ${errorMessage}`);
+        console.log(`âŒ File validation failed: ${errorMessage}`);
       } else {
         finalValidFiles.push(file);
-        console.log(`✅ File validated: ${file.name}`);
+        console.log(`âœ… File validated: ${file.name}`);
       }
     }
 
     if (finalValidFiles.length === 0) {
-      console.log("❌ No valid files after validation");
+      console.log("âŒ No valid files after validation");
       return new Response(
         JSON.stringify({
           state: "failure",
@@ -489,14 +570,14 @@ export async function action({ request }: ActionFunctionArgs) {
 
     // Handle single file (real-time processing)
     if (finalValidFiles.length === 1) {
-      console.log("🎯 Detected SINGLE file upload mode for file:", finalValidFiles[0].name);
-      
-      console.log("🔄 Starting real-time processing for single file...");
+      console.log("ðŸŽ¯ Detected SINGLE file upload mode for file:", finalValidFiles[0].name);
+
+      console.log("ðŸ”„ Starting real-time processing for single file...");
       const result = await processReceiptFile(finalValidFiles[0], user, category_id);
-      
+
       const status = result.state === "success" ? 201 : 200;
-      console.log(`✅ Single file processing completed with status: ${status}`);
-      
+      console.log(`âœ… Single file processing completed with status: ${status}`);
+
       return new Response(JSON.stringify(result), {
         status,
         headers: {
@@ -506,20 +587,20 @@ export async function action({ request }: ActionFunctionArgs) {
     }
 
     // Handle multiple files (background processing)
-    console.log(`🎯 Detected MULTIPLE file upload mode with ${finalValidFiles.length} files`);
-    console.log(`✅ Validated ${finalValidFiles.length} files, starting background queuing...`);
+    console.log(`ðŸŽ¯ Detected MULTIPLE file upload mode with ${finalValidFiles.length} files`);
+    console.log(`âœ… Validated ${finalValidFiles.length} files, starting background queuing...`);
 
     // Queue files for background processing - DON'T AWAIT THIS!
     const queueResultPromise = queueMultipleFilesForProcessing(finalValidFiles, user, category_id);
 
     // Return immediate 202 response WITHOUT waiting for queueing to complete
-    console.log(`📨 Returning IMMEDIATE 202 response for ${finalValidFiles.length} files - processing continues in background`);
+    console.log(`ðŸ“¨ Returning IMMEDIATE 202 response for ${finalValidFiles.length} files - processing continues in background`);
 
     // Log queueing result in background without blocking response
     queueResultPromise.then(({ successCount, failedCount }) => {
-      console.log(`🎯 Background queueing completed: ${successCount} queued, ${failedCount} failed`);
+      console.log(`ðŸŽ¯ Background queueing completed: ${successCount} queued, ${failedCount} failed`);
     }).catch(error => {
-      console.error("❌ Background queueing failed:", error);
+      console.error("âŒ Background queueing failed:", error);
     });
 
     // Return immediate response
@@ -543,8 +624,43 @@ export async function action({ request }: ActionFunctionArgs) {
       }
     );
 
+    // } catch (error) {
+    //   console.error("ðŸ’¥ Error processing receipt upload:", error);
+
+    //   return new Response(
+    //     JSON.stringify({
+    //       state: "failure",
+    //       message: "Internal server error",
+    //       data: [],
+    //     }),
+    //     {
+    //       status: 500,
+    //       headers: {
+    //         "Content-Type": "application/json; charset=utf-8",
+    //       },
+    //     }
+    //   );
+    // }
+
   } catch (error) {
     console.error("💥 Error processing receipt upload:", error);
+
+    // Check if it's a currency error
+    if (error instanceof Error && error.message.includes("Currency Not Supported")) {
+      return new Response(
+        JSON.stringify({
+          state: "failure",
+          message: error.message,
+          data: [],
+        }),
+        {
+          status: 422, // Unprocessable Entity
+          headers: {
+            "Content-Type": "application/json; charset=utf-8",
+          },
+        }
+      );
+    }
 
     return new Response(
       JSON.stringify({
