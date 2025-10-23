@@ -155,8 +155,7 @@ export default function ReceiptsPage() {
   const { receipts, categories, totalCount, currentPage, itemsPerPage } = useLoaderData<typeof loader>();
 
   return (
-    <SidebarProvider>
-      <div className="min-h-screen w-full bg-background">
+      <div>
           <ReceiptsTable 
             receipts={receipts}
             categories={categories}
@@ -165,6 +164,5 @@ export default function ReceiptsPage() {
             itemsPerPage={itemsPerPage}
           />
       </div>
-    </SidebarProvider>
   );
 }

@@ -1,10 +1,10 @@
+// import { useState } from "react";
 // import { ArrowUpDown, MoreHorizontal, Eye, Trash2, Receipt } from "lucide-react";
 // import { CategoryFilter } from "./CategoryFilter";
 // import SortDropdown from "./SortButton";
 // import { Searchbar } from "./searchbar";
-// import { useSearchParams, Link, useFetcher } from "@remix-run/react";
+// import { useSearchParams, Link } from "@remix-run/react";
 // import { Button } from "./ui/button";
-
 // import { CustomPagination } from "./CustomPagination";
 // import {
 //   DropdownMenu,
@@ -14,7 +14,17 @@
 //   DropdownMenuSeparator,
 // } from "./ui/dropdown-menu";
 // import { EmptyState } from "./EmptyState";
-
+// import {
+//   AlertDialog,
+//   AlertDialogAction,
+//   AlertDialogCancel,
+//   AlertDialogContent,
+//   AlertDialogDescription,
+//   AlertDialogFooter,
+//   AlertDialogHeader,
+//   AlertDialogTitle,
+//   AlertDialogTrigger,
+// } from "./ui/alert-dialog";
 
 // interface ReceiptTableProps {
 //   receipts: Array<{
@@ -26,73 +36,61 @@
 //     category: string;
 //     categoryId: string | null;
 //   }>;
-//   categories: Array<{
-//     id: string;
-//     name: string;
-//   }>;
+//   categories: Array<{ id: string; name: string }>;
 //   totalCount: number;
 //   currentPage: number;
 //   itemsPerPage: number;
 // }
 
-// export default function ReceiptsTable({ 
-//   receipts, 
-//   categories, 
-//   totalCount, 
-//   currentPage, 
-//   itemsPerPage 
+// export default function ReceiptsTable({
+//   receipts,
+//   categories,
+//   totalCount,
+//   currentPage,
+//   itemsPerPage,
 // }: ReceiptTableProps) {
 //   const [searchParams] = useSearchParams();
-//   const fetcher = useFetcher();
+//   const [deletingId, setDeletingId] = useState<string | null>(null);
+//   const [openDialog, setOpenDialog] = useState(false);
+//   const [selectedReceipt, setSelectedReceipt] = useState<{ id: string; vendor: string } | null>(null);
 
-//   const handleDelete = (id: string) => {
-//     if (confirm('Are you sure you want to delete this receipt?')) {
-//       fetch(`/api/receipts/delete/${id}`, {
-//         method: 'DELETE',
-//       })
-//       .then(async(response)=> {
-//         if(response.status < 299) {
-//             window.location.reload();
-//             return;
-//         } 
-//         try {
-//           const body = await response.json();
-//           if (body.message) { 
-//             alert(body.message)
-//           }
-//         } catch (e) {
-//           alert('This receipt needs extra care, try again later.')
-//         }
-//       })
+//   const handleDelete = async (id: string) => {
+//     if (!selectedReceipt) return;
+//     setDeletingId(id);
+
+//     try {
+//       const response = await fetch(`/api/receipt/delete/${id}`, { method: "DELETE" });
+//       if (response.ok) {
+//         window.location.reload();
+//       } else {
+//         const body = await response.json();
+//         alert(body.message || "Failed to delete receipt. Please try again.");
+//       }
+//     } catch (error) {
+//       console.error("Delete error:", error);
+//       alert("Network error. Please try again.");
+//     } finally {
+//       setDeletingId(null);
+//       setOpenDialog(false);
+//       setSelectedReceipt(null);
 //     }
 //   };
 
-//   const formatDate = (dateString: string) => {
-//     const date = new Date(dateString);
-//     return date.toLocaleDateString('en-US', { 
-//       year: 'numeric', 
-//       month: 'short', 
-//       day: 'numeric' 
-//     });
-//   };
+//   const formatDate = (dateString: string) =>
+//     new Date(dateString).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
 
-//   const formatCurrency = (amount: string, currency: string) => {
-//     return `${currency} $${parseFloat(amount).toLocaleString('en-US', { 
-//       minimumFractionDigits: 2, 
-//       maximumFractionDigits: 2 
-//     })}`;
-//   };
-  
+//   const formatCurrency = (amount: string, currency: string) =>
+//     `${currency} $${parseFloat(amount).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
 //   return (
 //     <div className="w-full bg-background space-y-4">
 //       {/* Filters Bar */}
 //       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
 //         <Searchbar />
 //         <CategoryFilter options={categories} />
-//         <SortDropdown onSortChange={() => {}} />
+//         <SortDropdown onSortChange={() => { }} />
 //       </div>
 
-//       {/* Table or Empty State */}
 //       {receipts.length === 0 ? (
 //         <EmptyState
 //           icon={Receipt}
@@ -104,35 +102,21 @@
 //         />
 //       ) : (
 //         <>
-//           {/* Table */}
 //           <div className="border border-border rounded-lg bg-card overflow-hidden">
 //             <div className="overflow-x-auto">
 //               <table className="w-full">
 //                 <thead className="bg-muted/50">
 //                   <tr className="border-b border-border">
-//                     <th className="text-left p-4 font-medium text-sm text-muted-foreground">
-//                       Vendor
-//                     </th>
-//                     <th className="text-left p-4 font-medium text-sm text-muted-foreground">
-//                       Total Amount
-//                     </th>
-//                     <th className="text-left p-4 font-medium text-sm text-muted-foreground">
-//                       Date
-//                     </th>
-//                     <th className="text-left p-4 font-medium text-sm text-muted-foreground">
-//                       Category
-//                     </th>
-//                     <th className="text-right p-4 font-medium text-sm text-muted-foreground">
-//                       Actions
-//                     </th>
+//                     <th className="text-left p-4 font-medium text-sm text-muted-foreground">Vendor</th>
+//                     <th className="text-left p-4 font-medium text-sm text-muted-foreground">Total Amount</th>
+//                     <th className="text-left p-4 font-medium text-sm text-muted-foreground">Date</th>
+//                     <th className="text-left p-4 font-medium text-sm text-muted-foreground">Category</th>
+//                     <th className="text-right p-4 font-medium text-sm text-muted-foreground">Actions</th>
 //                   </tr>
 //                 </thead>
 //                 <tbody>
 //                   {receipts.map((receipt) => (
-//                     <tr
-//                       key={receipt.id}
-//                       className="border-b border-border hover:bg-muted/50 transition-colors"
-//                     >
+//                     <tr key={receipt.id} className="border-b border-border hover:bg-muted/50 transition-colors">
 //                       <td className="p-4 text-sm font-medium">{receipt.vendor}</td>
 //                       <td className="p-4 text-sm">{formatCurrency(receipt.totalAmount, receipt.currency)}</td>
 //                       <td className="p-4 text-sm text-muted-foreground">{formatDate(receipt.date)}</td>
@@ -150,18 +134,18 @@
 //                           </DropdownMenuTrigger>
 //                           <DropdownMenuContent align="end">
 //                             <DropdownMenuItem asChild>
-//                               <Link 
-//                                 to={`/dashboard/receipts/${receipt.id}`}
-//                                 className="flex items-center cursor-pointer"
-//                               >
+//                               <Link to={`/dashboard/receipts/${receipt.id}`} className="flex items-center cursor-pointer">
 //                                 <Eye className="mr-2 h-4 w-4" />
 //                                 View Receipt
 //                               </Link>
 //                             </DropdownMenuItem>
 //                             <DropdownMenuSeparator />
-//                             <DropdownMenuItem 
-//                               onClick={() => handleDelete(receipt.id)}
+//                             <DropdownMenuItem
 //                               className="text-destructive focus:text-destructive cursor-pointer"
+//                               onClick={() => {
+//                                 setSelectedReceipt({ id: receipt.id, vendor: receipt.vendor });
+//                                 setOpenDialog(true);
+//                               }}
 //                             >
 //                               <Trash2 className="mr-2 h-4 w-4" />
 //                               Delete
@@ -177,23 +161,43 @@
 //           </div>
 
 //           {/* Pagination */}
-//           <CustomPagination
-//             totalItems={totalCount}
-//             itemsPerPage={itemsPerPage}
-//             currentPage={currentPage}
-//             className="mt-4"
-//           />
+//           <CustomPagination totalItems={totalCount} itemsPerPage={itemsPerPage} currentPage={currentPage} className="mt-4" />
+
+//           {/* ShadCN AlertDialog for deletion */}
+//           {selectedReceipt && (
+//             <AlertDialog open={openDialog} onOpenChange={setOpenDialog}>
+//               <AlertDialogContent className="w-[90vw] max-w-md sm:max-w-lg md:max-w-xl rounded-lg">
+//                 <AlertDialogHeader>
+//                   <AlertDialogTitle>Delete Receipt</AlertDialogTitle>
+//                   <AlertDialogDescription>
+//                     Are you sure you want to delete the receipt from <strong>{selectedReceipt.vendor}</strong>? This action cannot be undone.
+//                   </AlertDialogDescription>
+//                 </AlertDialogHeader>
+//                 <AlertDialogFooter className="flex flex-col sm:flex-row gap-2 sm:justify-end">
+//                   <AlertDialogCancel className="w-full sm:w-auto">Cancel</AlertDialogCancel>
+//                   <AlertDialogAction
+//                     className="w-full sm:w-auto bg-destructive text-destructive-foreground"
+//                     onClick={() => handleDelete(selectedReceipt.id)}
+//                   >
+//                     {deletingId === selectedReceipt.id ? "Deleting..." : "Delete"}
+//                   </AlertDialogAction>
+//                 </AlertDialogFooter>
+//               </AlertDialogContent>
+//             </AlertDialog>
+//           )}
+
 //         </>
 //       )}
 //     </div>
 //   );
 // }
 
-import { ArrowUpDown, MoreHorizontal, Eye, Trash2, Receipt } from "lucide-react";
+import { useState } from "react";
+import { MoreHorizontal, Eye, Trash2, Receipt } from "lucide-react";
 import { CategoryFilter } from "./CategoryFilter";
 import SortDropdown from "./SortButton";
 import { Searchbar } from "./searchbar";
-import { useSearchParams, Link, useFetcher } from "@remix-run/react";
+import { useSearchParams, Link } from "@remix-run/react";
 import { Button } from "./ui/button";
 import { CustomPagination } from "./CustomPagination";
 import {
@@ -204,7 +208,17 @@ import {
   DropdownMenuSeparator,
 } from "./ui/dropdown-menu";
 import { EmptyState } from "./EmptyState";
-import { useState } from "react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "./ui/alert-dialog";
+import { Notification } from "~/components/notification";
 
 interface ReceiptTableProps {
   receipts: Array<{
@@ -216,10 +230,7 @@ interface ReceiptTableProps {
     category: string;
     categoryId: string | null;
   }>;
-  categories: Array<{
-    id: string;
-    name: string;
-  }>;
+  categories: Array<{ id: string; name: string }>;
   totalCount: number;
   currentPage: number;
   itemsPerPage: number;
@@ -230,62 +241,76 @@ export default function ReceiptsTable({
   categories,
   totalCount,
   currentPage,
-  itemsPerPage
+  itemsPerPage,
 }: ReceiptTableProps) {
   const [searchParams] = useSearchParams();
-  const fetcher = useFetcher();
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [openDialog, setOpenDialog] = useState(false);
+  const [selectedReceipt, setSelectedReceipt] = useState<{ id: string; vendor: string } | null>(null);
+  const [notification, setNotification] = useState<{
+    show: boolean;
+    message: string;
+    type: "success" | "error" | "info";
+  }>({
+    show: false,
+    message: "",
+    type: "success",
+  });
 
-  const handleDelete = async (id: string, vendor: string) => {
-    if (!confirm(`Are you sure you want to delete the receipt from ${vendor}?`)) {
-      return;
-    }
+  const showNotification = (message: string, type: "success" | "error" | "info" = "success") => {
+    setNotification({ show: true, message, type });
+    
+    // Auto-hide after 5 seconds
+    setTimeout(() => {
+      setNotification((prev) => ({ ...prev, show: false }));
+    }, 5000);
+  };
 
+  const handleDelete = async (id: string) => {
+    if (!selectedReceipt) return;
     setDeletingId(id);
 
     try {
-      const response = await fetch(`/api/receipt/delete/${id}`, {
-        method: 'DELETE', 
-      });
-
+      const response = await fetch(`/api/receipt/delete/${id}`, { method: "DELETE" });
       if (response.ok) {
-        // Success - reload the page
-        window.location.reload();
+        // Show success notification
+        showNotification(`Receipt from ${selectedReceipt.vendor} deleted successfully!`, "success");
+        
+        // Reload after a short delay to show notification
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
       } else {
-        // Handle error response
-        try {
-          const body = await response.json();
-          alert(body.message || 'Failed to delete receipt. Please try again.');
-        } catch (e) {
-          alert('Failed to delete receipt. Please try again.');
-        }
+        const body = await response.json();
+        showNotification(body.message || "Failed to delete receipt. Please try again.", "error");
       }
     } catch (error) {
-      console.error('Delete error:', error);
-      alert('Network error. Please check your connection and try again.');
+      console.error("Delete error:", error);
+      showNotification("Network error. Please try again.", "error");
     } finally {
       setDeletingId(null);
+      setOpenDialog(false);
+      setSelectedReceipt(null);
     }
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  };
+  const formatDate = (dateString: string) =>
+    new Date(dateString).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
 
-  const formatCurrency = (amount: string, currency: string) => {
-    return `${currency} $${parseFloat(amount).toLocaleString('en-US', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    })}`;
-  };
+  const formatCurrency = (amount: string, currency: string) =>
+    `${currency} $${parseFloat(amount).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   return (
     <div className="w-full bg-background space-y-4">
+      {/* Notification */}
+      {notification.show && (
+        <Notification
+          message={notification.message}
+          type={notification.type}
+          onClose={() => setNotification((prev) => ({ ...prev, show: false }))}
+        />
+      )}
+
       {/* Filters Bar */}
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
         <Searchbar />
@@ -293,7 +318,6 @@ export default function ReceiptsTable({
         <SortDropdown onSortChange={() => {}} />
       </div>
 
-      {/* Table or Empty State */}
       {receipts.length === 0 ? (
         <EmptyState
           icon={Receipt}
@@ -305,73 +329,54 @@ export default function ReceiptsTable({
         />
       ) : (
         <>
-          {/* Table */}
           <div className="border border-border rounded-lg bg-card overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-muted/50">
                   <tr className="border-b border-border">
-                    <th className="text-left p-4 font-medium text-sm text-muted-foreground">
-                      Vendor
-                    </th>
-                    <th className="text-left p-4 font-medium text-sm text-muted-foreground">
-                      Total Amount
-                    </th>
-                    <th className="text-left p-4 font-medium text-sm text-muted-foreground">
-                      Date
-                    </th>
-                    <th className="text-left p-4 font-medium text-sm text-muted-foreground">
-                      Category
-                    </th>
-                    <th className="text-right p-4 font-medium text-sm text-muted-foreground">
-                      Actions
-                    </th>
+                    <th className="text-left p-4 font-medium text-sm text-muted-foreground whitespace-nowrap">Vendor</th>
+                    <th className="text-left p-4 font-medium text-sm text-muted-foreground whitespace-nowrap">Total Amount</th>
+                    <th className="text-left p-4 font-medium text-sm text-muted-foreground whitespace-nowrap">Date</th>
+                    <th className="text-left p-4 font-medium text-sm text-muted-foreground whitespace-nowrap">Category</th>
+                    <th className="text-right p-4 font-medium text-sm text-muted-foreground whitespace-nowrap">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {receipts.map((receipt) => (
-                    <tr
-                      key={receipt.id}
-                      className="border-b border-border hover:bg-muted/50 transition-colors"
-                    >
-                      <td className="p-4 text-sm font-medium">{receipt.vendor}</td>
-                      <td className="p-4 text-sm">{formatCurrency(receipt.totalAmount, receipt.currency)}</td>
-                      <td className="p-4 text-sm text-muted-foreground">{formatDate(receipt.date)}</td>
-                      <td className="p-4 text-sm">
+                    <tr key={receipt.id} className="border-b border-border hover:bg-muted/50 transition-colors">
+                      <td className="p-4 text-sm font-medium whitespace-nowrap">{receipt.vendor}</td>
+                      <td className="p-4 text-sm whitespace-nowrap">{formatCurrency(receipt.totalAmount, receipt.currency)}</td>
+                      <td className="p-4 text-sm text-muted-foreground whitespace-nowrap">{formatDate(receipt.date)}</td>
+                      <td className="p-4 text-sm whitespace-nowrap">
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
                           {receipt.category}
                         </span>
                       </td>
-                      <td className="p-4 text-sm text-right">
+                      <td className="p-4 text-sm text-right whitespace-nowrap">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-8 w-8"
-                              disabled={deletingId === receipt.id}
-                            >
+                            <Button variant="ghost" size="icon" className="h-8 w-8" disabled={deletingId === receipt.id}>
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem asChild>
-                              <Link
-                                to={`/dashboard/receipts/${receipt.id}`}
-                                className="flex items-center cursor-pointer"
-                              >
+                              <Link to={`/dashboard/receipts/${receipt.id}`} className="flex items-center cursor-pointer">
                                 <Eye className="mr-2 h-4 w-4" />
                                 View Receipt
                               </Link>
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
-                              onClick={() => handleDelete(receipt.id, receipt.vendor)}
                               className="text-destructive focus:text-destructive cursor-pointer"
+                              onClick={() => {
+                                setSelectedReceipt({ id: receipt.id, vendor: receipt.vendor });
+                                setOpenDialog(true);
+                              }}
                               disabled={deletingId === receipt.id}
                             >
                               <Trash2 className="mr-2 h-4 w-4" />
-                              {deletingId === receipt.id ? 'Deleting...' : 'Delete'}
+                              Delete
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -384,12 +389,31 @@ export default function ReceiptsTable({
           </div>
 
           {/* Pagination */}
-          <CustomPagination
-            totalItems={totalCount}
-            itemsPerPage={itemsPerPage}
-            currentPage={currentPage}
-            className="mt-4"
-          />
+          <CustomPagination totalItems={totalCount} itemsPerPage={itemsPerPage} currentPage={currentPage} className="mt-4" />
+
+          {/* Delete Confirmation Dialog */}
+          {selectedReceipt && (
+            <AlertDialog open={openDialog} onOpenChange={setOpenDialog}>
+              <AlertDialogContent className="w-[90vw] max-w-md sm:max-w-lg md:max-w-xl rounded-lg">
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete Receipt</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to delete the receipt from <strong>{selectedReceipt.vendor}</strong>? This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter className="flex flex-col sm:flex-row gap-2 sm:justify-end">
+                  <AlertDialogCancel className="w-full sm:w-auto">Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    className="w-full sm:w-auto bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    onClick={() => handleDelete(selectedReceipt.id)}
+                    disabled={deletingId === selectedReceipt.id}
+                  >
+                    {deletingId === selectedReceipt.id ? "Deleting..." : "Delete"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
         </>
       )}
     </div>
