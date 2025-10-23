@@ -3,7 +3,6 @@ import { Card, CardContent } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
-// import ReceiptNotFound from "~/components/notFound";
 import NoImageAvailable from "~/components/noImageAvailable";
 import NotFound from "~/components/notFound";
 import { FileQuestion, Home, ArrowLeft } from "lucide-react";

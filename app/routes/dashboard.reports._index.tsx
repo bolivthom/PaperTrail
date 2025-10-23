@@ -9,7 +9,7 @@ import ReportsPage from "~/components/reportsPage";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const { user } = await getUserFromRequest(request);
-  
+
   if (!user) return redirect('/auth/login');
 
   const url = new URL(request.url);
@@ -70,7 +70,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
   // Get previous period for comparison
   const previousPeriodStart = new Date(startDate);
   previousPeriodStart.setDate(previousPeriodStart.getDate() - parseInt(period));
-  
+
   const previousReceipts = await prisma.receipt.findMany({
     where: {
       user_id: user.id,
@@ -203,14 +203,8 @@ export default function Reports() {
   const data = useLoaderData<typeof loader>();
 
   return (
-    <SidebarProvider>
-      {/* <div className="min-h-screen w-full bg-background">
-        <AppSidebar />
-        <main className="p-4 lg:p-8">
-          <Header /> */}
-          <ReportsPage data={data} />
-        {/* </main>
-      </div> */}
-    </SidebarProvider>
+    <div>
+      <ReportsPage data={data} />
+    </div>
   );
 }
