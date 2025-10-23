@@ -49,7 +49,7 @@ export default function FileUploader() {
 
   const showNotification = (message: string, type: "success" | "error" | "info" = "success") => {
     setNotification({ show: true, message, type });
-    
+
     // Auto-hide after 5 seconds
     setTimeout(() => {
       setNotification((prev) => ({ ...prev, show: false }));
@@ -220,66 +220,48 @@ export default function FileUploader() {
       {files.length > 0 && (
         <div className="space-y-3">
           <div className="space-y-2">
-            {files.map(
-              (file: {
-                id: Key | null | undefined;
-                preview: string | undefined;
-                file: {
-                  name:
-                    | string
-                    | number
-                    | boolean
-                    | ReactElement<any, string | JSXElementConstructor<any>>
-                    | Iterable<ReactNode>
-                    | null
-                    | undefined;
-                  size: number;
-                  type: string;
-                };
-              }) => (
-                <div
-                  key={file.id}
-                  className="flex items-center justify-between gap-2 rounded-lg border bg-background p-2 pe-3"
-                >
-                  <div className="flex items-center gap-3 overflow-hidden">
-                    <div className="aspect-square shrink-0 rounded bg-accent">
-                      {file.file.type.startsWith("image/") ? (
-                        <img
-                          src={file.preview}
-                          alt={file.file.name as string}
-                          className="size-10 rounded-[inherit] object-cover"
-                        />
-                      ) : (
-                        <div className="size-10 rounded-[inherit] bg-blue-100 flex items-center justify-center">
-                          <span className="text-xs font-medium text-blue-800">
-                            PDF
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex min-w-0 flex-col gap-0.5">
-                      <p className="truncate text-[13px] font-medium">
-                        {file.file.name}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {formatBytes(file.file.size)} • {file.file.type}
-                      </p>
-                    </div>
+            {files.map((file) => (
+              <div
+                key={file.id}
+                className="flex items-center justify-between gap-2 rounded-lg border bg-background p-2 pe-3"
+              >
+                <div className="flex items-center gap-3 overflow-hidden">
+                  <div className="aspect-square shrink-0 rounded bg-accent">
+                    {file.file.type.startsWith("image/") ? (
+                      <img
+                        src={file.preview}
+                        alt={file.file.name}
+                        className="size-10 rounded-[inherit] object-cover"
+                      />
+                    ) : (
+                      <div className="size-10 rounded-[inherit] bg-blue-100 flex items-center justify-center">
+                        <span className="text-xs font-medium text-blue-800">
+                          PDF
+                        </span>
+                      </div>
+                    )}
                   </div>
-
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="-me-2 size-8 text-muted-foreground/80 hover:bg-transparent hover:text-foreground"
-                    onClick={() => removeFile(file.id as string)}
-                    aria-label="Remove file"
-                    disabled={isUploading}
-                  >
-                    <XIcon className="size-4" aria-hidden="true" />
-                  </Button>
+                  <div className="flex min-w-0 flex-col gap-0.5">
+                    <p className="truncate text-[13px] font-medium">
+                      {file.file.name}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {formatBytes(file.file.size)} • {file.file.type}
+                    </p>
+                  </div>
                 </div>
-              )
-            )}
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="-me-2 size-8 text-muted-foreground/80 hover:bg-transparent hover:text-foreground"
+                  onClick={() => removeFile(file.id as string)}
+                  aria-label="Remove file"
+                  disabled={isUploading}
+                >
+                  <XIcon className="size-4" aria-hidden="true" />
+                </Button>
+              </div>
+            ))}
           </div>
 
           {/* Action Buttons - Positioned at bottom of file list */}

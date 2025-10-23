@@ -26,7 +26,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "./ui/alert-dialog";
-import { Notification } from "~/components/Notification";
+import { Notification } from "~/components/notification";
 import { Checkbox } from "./ui/checkbox";
 
 interface ReceiptTableProps {
