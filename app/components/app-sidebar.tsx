@@ -28,7 +28,7 @@ export function AppSidebar() {
             {/* Logo */}
             <div className="flex items-center gap-2 px-4 mb-8">
                 <img 
-                    src="https://cdn.rfitzy.net/3d027a53d02c/files/applogo_63928119579192691.svg" 
+                    src="https://img.imagefoundry.io/fs-imgix/3d027a53d02c/files/applogo_63928119579192691.svg" 
                     className="w-32 h-auto" 
                     alt="App Logo" 
                 />
